@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { DoctorService } from './doctor.service';
 import { CreateDoctorDto } from './dto/create-doctor.dto';
 import { UpdateDoctorDto } from './dto/update-doctor.dto';
@@ -21,4 +21,25 @@ export class DoctorController {
   async delete(@Param('id') id: string) {
     return this.doctorService.delete(id);
   }
+
+  @Get('search')
+  async search(
+    @Query('speciality') speciality: string,
+    @Query('city') city: string,
+  ) {
+    return this.doctorService.searchDoctors(speciality, city);
+  }
+
+  @Get('specialities')
+  async getAvailableSpecialities() {
+    const specialities = await this.doctorService.getAvailableSpecialities();
+    return { specialities };
+  }
+
+  @Get('cities')
+  async getAvailableCities() {
+    const cities = await this.doctorService.getAvailableCities();
+    return { cities };
+  }
+
 }

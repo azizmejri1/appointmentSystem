@@ -27,12 +27,8 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
-      await this.validateUser(email,password);
-      const user = await this.userModel.findOne({ email });
-      if (!user) throw new UnauthorizedException('Invalid email or password');
-
-      const valid = await bcrypt.compare(password, user.password);
-      if (!valid) throw new UnauthorizedException('Invalid email or password');
+      
+      const user = await this.validateUser(email,password);
 
       let role: 'doctor' | 'patient' | null = null;
       let profile = null;

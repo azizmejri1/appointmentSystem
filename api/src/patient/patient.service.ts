@@ -18,10 +18,12 @@ export class PatientService {
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
     const user = await this.userModel.create({
-      fullName: data.fullName,
+      firstName: data.firstName,
+      lastName: data.lastName,
       email: data.email,
       password: hashedPassword,
-      gender: data.gender,
+      phoneNumber: data.phoneNumber,
+      gender : data.gender,
     });
 
     const patient = await this.patientModel.create({

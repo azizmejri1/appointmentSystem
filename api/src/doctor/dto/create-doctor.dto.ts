@@ -3,7 +3,11 @@ import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-vali
 export class CreateDoctorDto {
   @IsNotEmpty()
   @IsString()
-  fullName: string;
+  firstName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  lastName: string;
 
   @IsEmail()
   email: string;
@@ -15,6 +19,10 @@ export class CreateDoctorDto {
   @IsOptional()
   @IsString()
   gender: string;
-
+  
+  @IsOptional()
+  @IsString()
+  phoneNumber: string;
+  
 
 }

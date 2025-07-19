@@ -18,10 +18,12 @@ export class DoctorService {
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
     const user = await this.userModel.create({
-      fullName: data.fullName,
+      fullName: data.firstName,
+      lastName : data.lastName,
       email: data.email,
       password: hashedPassword,
       gender: data.gender,
+      phoneNumber : data.phoneNumber,
     });
 
     const doctor = await this.doctorModel.create({
@@ -57,4 +59,33 @@ export class DoctorService {
 
     return { message: 'Doctor and associated user deleted' };
   }
+
+  async searchDoctors(speciality?: string, city?: string): Promise<Doctor[]> {
+    const query: any = {};
+
+    if (speciality) {
+      query.speciality = { $regex: new RegExp(speciality, 'i') }; // case-insensitive
+    }
+
+    if (city) {
+      query.city = { $regex: new RegExp(city, 'i') }; // case-insensitive
+    }
+
+    return this.doctorModel
+    .find(query)
+    .populate({
+      path: 'user',
+      select: '-password' // exclude the password field
+    })
+    .exec();
+  }
+
+  async getAvailableSpecialities(): Promise<string[]> {
+    return this.doctorModel.distinct('speciality').exec();
+  }
+
+  async getAvailableCities(): Promise<string[]> {
+    return this.doctorModel.distinct('city').exec();
+  }
+
 }
