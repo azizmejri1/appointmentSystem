@@ -1,37 +1,46 @@
 "use client";
-import React, { useState } from "react";
+import React, { FormEvent, useEffect, useState } from "react";
 import { Search, MapPin, Stethoscope, User } from "lucide-react";
+import { fetchCities, fetchSpecialities } from "@/api/doctor";
+import { useRouter } from "next/navigation";
 
 const SearchBar = () => {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [specialty, setSpecialty] = useState("");
   const [location, setLocation] = useState("");
+  const [specialties, setSpecialities] = useState<string[]>([]);
+  const [locations, setLocations] = useState<string[]>([]);
 
-  const specialties = [
-    "All Specialties",
-    "Cardiology",
-    "Dermatology",
-    "Endocrinology",
-    "Family Medicine",
-    "Neurology",
-    "Orthopedics",
-    "Pediatrics",
-    "Psychiatry",
-    "Radiology",
-  ];
+  useEffect(() => {
+    const setLocationAndSpecialty = async () => {
+      const fetchedSpecialties = await fetchSpecialities();
+      const fetchedLocations = await fetchCities();
 
-  const locations = [
-    "All Locations",
-    "New York, NY",
-    "Los Angeles, CA",
-    "Chicago, IL",
-    "Houston, TX",
-    "Phoenix, AZ",
-    "Philadelphia, PA",
-    "San Antonio, TX",
-    "San Diego, CA",
-    "Dallas, TX",
-  ];
+      setSpecialities(fetchedSpecialties);
+      setLocations(fetchedLocations);
+
+      setSpecialty(fetchedSpecialties[0] ?? "");
+      setLocation(fetchedLocations[0] ?? "");
+    };
+
+    setLocationAndSpecialty();
+  }, []);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const params = new URLSearchParams();
+
+    if (location.trim()) params.set("city", location.trim());
+    if (specialty.trim()) params.set("speciality", specialty.trim());
+
+    const queryString = params.toString();
+
+    // always log it for debugging
+
+    router.push(`/doctorsList?${queryString}`);
+  };
 
   return (
     <div className="w-full max-w-5xl mx-auto p-6">
@@ -98,7 +107,10 @@ const SearchBar = () => {
 
           {/* Search Button */}
           <div className="flex justify-center">
-            <button className="bg-gradient-to-r from-[#0e77d6] to-[#0e77d6] hover:from-[#0c68b9] hover:to-[#0c68b9] text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center space-x-2">
+            <button
+              className="bg-gradient-to-r from-[#0e77d6] to-[#0e77d6] hover:from-[#0c68b9] hover:to-[#0c68b9] text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center space-x-2"
+              onClick={handleSearchSubmit}
+            >
               <Search className="w-4 h-4" />
               <span>Search Healthcare Providers</span>
             </button>

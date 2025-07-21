@@ -4,7 +4,11 @@ export class UpdateDoctorDto {
 
     @IsNotEmpty()
     @IsString()
-    fullName?: string;
+    firstName?: string;
+
+    @IsNotEmpty()
+    @IsString()
+    lastName?: string;
   
     @IsEmail()
     email?: string;
@@ -15,7 +19,15 @@ export class UpdateDoctorDto {
   
     @IsOptional()
     @IsString()
-    specialty?: string;
+    speciality?: string;
+
+    @IsOptional()
+    @IsString()
+    city?: string;
+
+    @IsOptional()
+    @IsString()
+    adress?: string;
 
     @IsOptional()
     @IsString()
@@ -28,4 +40,12 @@ export class UpdateDoctorDto {
     @IsOptional()
     @IsString()
     phoneNumber?: string;
+
+    @IsOptional()
+    @IsString()
+    description?: string;
+
+    @IsOptional()
+    @IsString()
+    keywords?: string[];
 }

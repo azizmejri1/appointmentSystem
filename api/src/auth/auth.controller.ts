@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
+import { last } from 'rxjs';
 
 
 
@@ -22,7 +23,10 @@ export class AuthController {
         secure: false, 
       });
 
-      return { message: 'Logged in', userId: user.user._id , role : user.role };
+      const profile = user.profile || {_id:null};
+    
+      
+      return { message: 'Logged in', userId: user.user._id , role : user.role, profileId :profile._id , firstName : user.user.firstName,lastName:user.user.lastName};
     }
 
     @Post('logout')
@@ -36,7 +40,7 @@ export class AuthController {
       return { message: 'Logged out' };
     }
     
-    @Get('profile')
+  @Get('profile')
   async getProfile(@Req() req: Request) {
     const token = req.cookies?.token;
 

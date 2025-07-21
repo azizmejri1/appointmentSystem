@@ -20,7 +20,6 @@ export default function Home() {
       {showSignUp && (
         <SignUp setShowSignIn={setShowSignIn} setShowSignUp={setShowSignUp} />
       )}
-
       <div className="flex justify-center align-center">
         <SearchSection />
       </div>

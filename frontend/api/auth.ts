@@ -5,12 +5,22 @@ import axios from "axios";
 
 const API_URL = "http://localhost:8080";
 
-
 export async function handleSignIn(data: SignInData) {
   try {
-    const response = await axios.post(`${API_URL}/auth/login`, data, {withCredentials: true});
+    const response = await axios.post(`${API_URL}/auth/login`, data, {
+      withCredentials: true,
+    });
 
     console.log("✅ Sign in successful:", response.data);
+
+    const { userId, profileId,firstName,lastName } = response.data;
+
+    if (userId) {
+      localStorage.setItem('userId', userId);
+      localStorage.setItem('profileId',profileId);
+      localStorage.setItem('firstName',firstName);
+      localStorage.setItem('lastName',lastName);
+    }
 
     return response.data;
   } catch (error) {
@@ -18,6 +28,7 @@ export async function handleSignIn(data: SignInData) {
     throw error;
   }
 }
+
 
 
 export async function handleSignUp(data: SignUpData) {

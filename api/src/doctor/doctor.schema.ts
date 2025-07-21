@@ -22,6 +22,12 @@ export class Doctor extends Document {
   @Prop()
   credential_img?: string;
 
+  @Prop()
+  description?: string;
+
+  @Prop({ type: [String], default: [] })
+  keywords?: string[];
+
   @Prop({ default: false })
   verified: boolean;
 }

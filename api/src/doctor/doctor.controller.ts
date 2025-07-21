@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/
 import { DoctorService } from './doctor.service';
 import { CreateDoctorDto } from './dto/create-doctor.dto';
 import { UpdateDoctorDto } from './dto/update-doctor.dto';
+import { Doctor } from './doctor.schema';
 
 @Controller('doctors')
 export class DoctorController {
@@ -40,6 +41,11 @@ export class DoctorController {
   async getAvailableCities() {
     const cities = await this.doctorService.getAvailableCities();
     return { cities };
+  }
+
+  @Get()
+  async findAllDoctors(): Promise<Doctor[]> {
+    return this.doctorService.findAllDoctors();
   }
 
 }

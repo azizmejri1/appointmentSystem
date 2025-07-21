@@ -18,7 +18,7 @@ export class DoctorService {
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
     const user = await this.userModel.create({
-      fullName: data.firstName,
+      firstName: data.firstName,
       lastName : data.lastName,
       email: data.email,
       password: hashedPassword,
@@ -79,6 +79,17 @@ export class DoctorService {
     })
     .exec();
   }
+
+  async findAllDoctors(): Promise<Doctor[]> {
+  return this.doctorModel
+    .find({})
+    .populate({
+      path: 'user',
+      select: '-password' // exclude password field
+    })
+    .exec();
+}
+
 
   async getAvailableSpecialities(): Promise<string[]> {
     return this.doctorModel.distinct('speciality').exec();
