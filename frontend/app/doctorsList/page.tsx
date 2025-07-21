@@ -99,7 +99,24 @@ const App = () => {
                     {filteredDoctors.length !== 1 ? "s" : ""}
                   </p>
                   {filteredDoctors.map((doctor, index) => (
-                    <DoctorProfileCard key={index} {...doctor} />
+                    <DoctorProfileCard
+                      key={index}
+                      doctor={{
+                        _id: doctor.id, // Use the real doctor ID from the API
+                        firstName:
+                          doctor.name.replace("Dr. ", "").split(" ")[0] ||
+                          "Doctor",
+                        lastName:
+                          doctor.name
+                            .replace("Dr. ", "")
+                            .split(" ")
+                            .slice(1)
+                            .join(" ") || "Name",
+                        specialty: doctor.specialty,
+                        location: doctor.location,
+                      }}
+                      {...doctor}
+                    />
                   ))}
                 </div>
               ) : (

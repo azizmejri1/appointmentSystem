@@ -21,6 +21,7 @@ export interface Doctor {
 }
 
 export interface SampleDoctor{
+    id: string; // Add the id field
     name: string;
     specialty: string;
     location: string;

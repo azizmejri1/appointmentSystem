@@ -5,6 +5,8 @@ import { Model } from 'mongoose';
 import { CreateAppointmentDto } from './create-appointment.dto';
 import * as moment from 'moment';
 import { Schedule } from 'src/schedule/schedule.schema';
+import { Patient } from 'src/patient/patient.schema';
+import { User } from 'src/user/user.schema';
 
 
 @Injectable()
@@ -13,6 +15,10 @@ export class AppointmentService {
     @InjectModel(Appointment.name) private appointmentModel: Model<Appointment>,
     @InjectModel(Schedule.name)
     private readonly scheduleModel: Model<Schedule>,
+    @InjectModel(Patient.name)
+    private readonly patientModel: Model<Patient>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
   ) {}
 
 
@@ -104,7 +110,29 @@ async create(dto: CreateAppointmentDto): Promise<Appointment> {
 
   // 5️⃣ Create appointment
   const appointment = new this.appointmentModel(dto);
-  return appointment.save();
+  const savedAppointment = await appointment.save();
+
+  // 6️⃣ Add the appointment time slot to pauses
+  const appointmentStartTime = requestedTime.format('HH:mm');
+  const appointmentEndTime = requestedTime.clone().add(duration, 'minutes').format('HH:mm');
+
+  // Find the availability slot for the day and add the pause
+  const availabilityIndex = schedule.availability.findIndex(slot => slot.day === dayOfWeek);
+  if (availabilityIndex !== -1) {
+    if (!schedule.availability[availabilityIndex].pauses) {
+      schedule.availability[availabilityIndex].pauses = [];
+    }
+    
+    schedule.availability[availabilityIndex].pauses.push({
+      start: appointmentStartTime,
+      end: appointmentEndTime
+    });
+
+    // Save the updated schedule
+    await schedule.save();
+  }
+
+  return savedAppointment;
 }
 
 
@@ -122,14 +150,42 @@ async create(dto: CreateAppointmentDto): Promise<Appointment> {
   }
 
   async getByPatient(patientId: string): Promise<Appointment[]> {
-    return this.appointmentModel.find({ patient: patientId });
+    return this.appointmentModel.find({ patient: patientId })
+      .populate({
+        path: 'patient',
+        populate: {
+          path: 'user',
+          select: 'firstName lastName email phoneNumber'
+        }
+      });
   }
 
   async getByDoctor(doctorId: string): Promise<Appointment[]> {
-    return this.appointmentModel.find({ doctor: doctorId });
+    console.log('🔍 Fetching appointments for doctor:', doctorId);
+    
+    const appointments = await this.appointmentModel.find({ doctor: doctorId })
+      .populate({
+        path: 'patient',
+        populate: {
+          path: 'user',
+          select: 'firstName lastName email phoneNumber'
+        }
+      });
+    
+    console.log('📋 Found appointments:', appointments.length);
+    console.log('📋 First appointment patient:', appointments[0]?.patient);
+    
+    return appointments;
   }
 
   async getAll(): Promise<Appointment[]> {
-    return this.appointmentModel.find();
+    return this.appointmentModel.find()
+      .populate({
+        path: 'patient',
+        populate: {
+          path: 'user',
+          select: 'firstName lastName email phoneNumber'
+        }
+      });
   }
 }

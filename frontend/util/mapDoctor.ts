@@ -11,6 +11,7 @@ export function mapDoctors(apiDoctors: Doctor[]) {
     const keywords = doc.keywords ?? [];
 
     return {
+      id: doc._id, // Preserve the original doctor ID
       name,
       specialty,
       location,

@@ -2,6 +2,7 @@ import { Doctor } from "@/interface/doctor";
 import axios from "axios";
 
 const BASE_URL = "http://localhost:8080/doctors";
+const PATIENTS_URL = "http://localhost:8080/patients";
 
 export async function fetchSpecialities(): Promise<string[]> {
   try {
@@ -47,5 +48,15 @@ export async function fetchAllDoctors(): Promise<Doctor[]> {
   } catch (err) {
     console.error('Error fetching all doctors:', err);
     return [];
+  }
+}
+
+export async function fetchPatientsByDoctor(doctorId: string) {
+  try {
+    const response = await axios.get(`${PATIENTS_URL}?doctorId=${doctorId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching patients for doctor:', error);
+    throw error;
   }
 }
