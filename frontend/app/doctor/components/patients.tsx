@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { fetchPatientsByDoctor } from "@/api/doctor";
+import MedicalRecordsModal from "@/components/ui/MedicalRecordsModal";
 
 interface Patient {
   _id: string;
@@ -138,6 +139,8 @@ export default function Patients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null); // State for selected patient
+  const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
 
   useEffect(() => {
     fetchPatients();
@@ -174,10 +177,14 @@ export default function Patients() {
     }
   };
 
-  const handleViewMedicalRecord = (patientId: string, patientName: string) => {
-    alert(
-      `Medical record for ${patientName} will be implemented soon!\n\nPatient ID: ${patientId}`
-    );
+  const handleViewMedicalRecord = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setSelectedPatient(null);
+    setIsModalOpen(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -389,12 +396,7 @@ export default function Patients() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
-                          onClick={() =>
-                            handleViewMedicalRecord(
-                              patient._id,
-                              `${patient.user.firstName} ${patient.user.lastName}`
-                            )
-                          }
+                          onClick={() => handleViewMedicalRecord(patient)}
                           className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                         >
                           <svg
@@ -420,6 +422,14 @@ export default function Patients() {
             </div>
           )}
         </div>
+      )}
+
+      {selectedPatient && (
+        <MedicalRecordsModal
+          patient={selectedPatient}
+          isOpen={isModalOpen}
+          onClose={closeModal}
+        />
       )}
     </div>
   );

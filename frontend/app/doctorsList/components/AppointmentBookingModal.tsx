@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Info,
 } from "lucide-react";
+import WaitingList from "@/app/patient/components/WaitingList";
 
 interface Doctor {
   _id: string;
@@ -60,6 +61,9 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ErrorMessage | null>(null);
+
+  const doctorId = doctor._id;
+  const patientId = localStorage.getItem("profileId") || "";
 
   // Generate calendar days for current month
   const generateCalendarDays = () => {
@@ -568,25 +572,10 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
               </div>
             ) : availableSlots.length === 0 ? (
               <div className="text-center py-8">
-                <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500 mb-2">
                   No available slots for this date
                 </p>
-                {!schedule ? (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
-                    <p className="text-sm text-yellow-800">
-                      <strong>No schedule found!</strong>
-                      <br />
-                      This doctor hasn't created a schedule yet or the doctor ID
-                      doesn't match any records.
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400">
-                    Try selecting a different date or check if the doctor is
-                    available on this day.
-                  </p>
-                )}
+                <WaitingList doctorId={doctorId} patientId={patientId} />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">

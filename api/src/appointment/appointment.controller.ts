@@ -21,7 +21,7 @@ export class AppointmentController {
   constructor(private readonly appointmentService: AppointmentService) {}
 
   @Post()
-  @Roles('patient')
+  @Roles('patient','doctor')
   create(@Body() dto: CreateAppointmentDto) {
     return this.appointmentService.create(dto);
   }

@@ -62,6 +62,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick }) => {
       path: "/patients",
     },
     {
+      id: "waiting-list",
+      label: "Waiting List",
+      icon: Users,
+      path: "/waiting-list",
+    },
+    {
       id: "settings",
       label: "Settings",
       icon: Settings,

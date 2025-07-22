@@ -8,6 +8,9 @@ export class WaitingList extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'Patient' })
   patient: Types.ObjectId;
+
+  @Prop({ type: Date, default: Date.now })
+  createdAt: Date;
 }
 
 export const WaitingListSchema = SchemaFactory.createForClass(WaitingList);

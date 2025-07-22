@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import Statistics from "../components/statistics";
 import AppointmentsList from "../components/AppointmentsList";
 import Patients from "../components/patients";
+import WaitingList from "../components/WaitingList";
 
 const Settings = () => <div className="p-8 text-xl">Settings Component</div>;
 
@@ -23,6 +24,8 @@ export default function Dashboard() {
         return <Patients />;
       case "settings":
         return <Settings />;
+      case "waiting-list":
+        return <WaitingList />;
       default:
         return <ScheduleCalendar />;
     }

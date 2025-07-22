@@ -23,6 +23,7 @@ export class AppointmentService {
 
 
 async create(dto: CreateAppointmentDto): Promise<Appointment> {
+  console.log("Received DTO:", dto); // Debugging log
   const requestedTime = moment(dto.dateTime); // this is your requested date/time
   const dayOfWeek = requestedTime.format('dddd'); // e.g., Monday
 
