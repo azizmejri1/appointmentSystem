@@ -23,11 +23,8 @@ export interface MedicalRecord {
 
 export async function fetchRecordsByPatient(patientId: string): Promise<MedicalRecord[]> {
   try {
-    const token = localStorage.getItem("token");
     const response = await axios.get(`${BASE_URL}/${patientId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      withCredentials: true,
     });
     return response.data;
   } catch (error) {
@@ -41,7 +38,6 @@ export async function createRecord(
   consultation: Consultation
 ): Promise<MedicalRecord> {
   try {
-    const token = localStorage.getItem("token");
     const doctorId = localStorage.getItem("profileId"); // Get doctor ID from localStorage
     
     if (!doctorId) {
@@ -49,8 +45,8 @@ export async function createRecord(
     }
     
     const response = await axios.post(`${BASE_URL}/${patientId}/${doctorId}`, consultation, {
+      withCredentials: true,
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     });
@@ -67,13 +63,12 @@ export async function updateConsultation(
   updatedConsultation: Consultation
 ): Promise<MedicalRecord> {
   try {
-    const token = localStorage.getItem("token");
     const response = await axios.patch(
       `${BASE_URL}/${recordId}/${consultationId}`,
       updatedConsultation,
       {
+        withCredentials: true,
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       }
@@ -90,11 +85,8 @@ export async function deleteConsultation(
   consultationId: string
 ): Promise<MedicalRecord> {
   try {
-    const token = localStorage.getItem("token");
     const response = await axios.delete(`${BASE_URL}/${recordId}/${consultationId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      withCredentials: true,
     });
     return response.data;
   } catch (error) {

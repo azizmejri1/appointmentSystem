@@ -6,6 +6,7 @@ import { useState } from "react";
 import Navbar from "@/components/navbar";
 import SignIn from "@/components/signIn";
 import SignUp from "@/components/signUp";
+import { NotificationProvider } from "@/hooks/useNotifications";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <NotificationProvider>{children}</NotificationProvider>
       </body>
     </html>
   );

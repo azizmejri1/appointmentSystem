@@ -43,9 +43,29 @@ export class DoctorController {
     return { cities };
   }
 
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<Doctor> {
+    return this.doctorService.findOne(id);
+  }
+
   @Get()
   async findAllDoctors(): Promise<Doctor[]> {
     return this.doctorService.findAllDoctors();
+  }
+
+  @Post(':id/upload-credentials')
+  async uploadCredentials(@Param('id') id: string, @Body() body: { credential_img: string }) {
+    return this.doctorService.uploadCredentials(id, body.credential_img);
+  }
+
+  @Post(':id/verify-phone')
+  async verifyPhone(@Param('id') id: string, @Body() body: { phoneNumber: string }) {
+    return this.doctorService.verifyPhone(id, body.phoneNumber);
+  }
+
+  @Post(':id/verify-email')
+  async verifyEmail(@Param('id') id: string) {
+    return this.doctorService.verifyEmail(id);
   }
 
 }

@@ -6,8 +6,9 @@ import Statistics from "../components/statistics";
 import AppointmentsList from "../components/AppointmentsList";
 import Patients from "../components/patients";
 import WaitingList from "../components/WaitingList";
-
-const Settings = () => <div className="p-8 text-xl">Settings Component</div>;
+import Settings from "../components/settings";
+import Notifications from "../components/Notifications";
+import { NotificationProvider } from "../../../hooks/useNotifications";
 
 export default function Dashboard() {
   const [activeItem, setActiveItem] = useState<string>("dashboard");
@@ -22,6 +23,8 @@ export default function Dashboard() {
         return <AppointmentsList />;
       case "patients":
         return <Patients />;
+      case "notifications":
+        return <Notifications />;
       case "settings":
         return <Settings />;
       case "waiting-list":
@@ -32,9 +35,11 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex">
-      <Sidebar activeItem={activeItem} onItemClick={setActiveItem} />
-      <div className="flex-1">{renderContent()}</div>
-    </div>
+    <NotificationProvider>
+      <div className="flex">
+        <Sidebar activeItem={activeItem} onItemClick={setActiveItem} />
+        <div className="flex-1">{renderContent()}</div>
+      </div>
+    </NotificationProvider>
   );
 }

@@ -30,6 +30,12 @@ export class Doctor extends Document {
 
   @Prop({ default: false })
   verified: boolean;
+
+  @Prop({ default: false })
+  emailVerified?: boolean;
+
+  @Prop({ default: false })
+  phoneVerified?: boolean;
 }
 
 export const DoctorSchema = SchemaFactory.createForClass(Doctor);

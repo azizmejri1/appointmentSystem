@@ -11,6 +11,7 @@ import Image from "next/image";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { isLoggedIn, logout } from "@/api/profile";
 import { useRouter } from "next/navigation";
+import NotificationBell from "./notificationBell";
 
 export default function Navbar({
   setShowSignIn,
@@ -82,7 +83,8 @@ export default function Navbar({
           {/* Auth Buttons or User Menu */}
           <div className="m-2">
             {loggedIn ? (
-              <>
+              <div className="flex items-center space-x-3">
+                <NotificationBell />
                 <Button variant="secondary" onClick={handleLogout}>
                   Logout
                 </Button>
@@ -93,9 +95,9 @@ export default function Navbar({
                 >
                   <Link href="/profile">Profile</Link>
                 </Button>
-              </>
+              </div>
             ) : (
-              <>
+              <div>
                 <Button
                   variant="secondary"
                   className="mr-2"
@@ -109,7 +111,7 @@ export default function Navbar({
                 >
                   Login
                 </Button>
-              </>
+              </div>
             )}
           </div>
         </div>

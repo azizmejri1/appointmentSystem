@@ -1,0 +1,9 @@
+# This file serves as a placeholder for notification sound.
+# The actual sound is generated using Web Audio API in notificationSound.ts
+# If you want to use a custom sound file, replace this with your MP3 file.
+
+# You can create a custom notification sound by:
+# 1. Recording a short sound (1-2 seconds)
+# 2. Converting it to MP3 format
+# 3. Replacing this file with your MP3
+# 4. The playNotificationSoundFile() function will use this file

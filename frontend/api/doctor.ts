@@ -60,3 +60,78 @@ export async function fetchPatientsByDoctor(doctorId: string) {
     throw error;
   }
 }
+
+export async function fetchDoctorProfile(doctorId: string): Promise<Doctor> {
+  try {
+    const response = await axios.get(`${BASE_URL}/${doctorId}`, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching doctor profile:', error);
+    throw error;
+  }
+}
+
+export async function updateDoctorProfile(doctorId: string, data: any): Promise<Doctor> {
+  try {
+    const response = await axios.put(`${BASE_URL}/${doctorId}`, data, {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating doctor profile:', error);
+    throw error;
+  }
+}
+
+export async function uploadCredentials(doctorId: string, file: File): Promise<any> {
+  try {
+    const formData = new FormData();
+    formData.append('credential', file);
+    
+    const response = await axios.post(`${BASE_URL}/${doctorId}/upload-credentials`, formData, {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading credentials:', error);
+    throw error;
+  }
+}
+
+export async function verifyPhoneNumber(doctorId: string, phoneNumber: string): Promise<any> {
+  try {
+    const response = await axios.post(`${BASE_URL}/${doctorId}/verify-phone`, 
+      { phoneNumber }, 
+      {
+        withCredentials: true,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error verifying phone number:', error);
+    throw error;
+  }
+}
+
+export async function verifyEmail(doctorId: string): Promise<any> {
+  try {
+    const response = await axios.post(`${BASE_URL}/${doctorId}/verify-email`, {}, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error verifying email:', error);
+    throw error;
+  }
+}

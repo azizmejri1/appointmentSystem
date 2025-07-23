@@ -7,8 +7,10 @@ import {
   Settings,
   ChevronRight,
   LucideIcon,
+  Bell,
 } from "lucide-react";
 import { User } from "@/interface/doctor";
+import { useNotifications } from "../../../hooks/useNotifications";
 
 interface MenuItem {
   id: string;
@@ -24,8 +26,8 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick }) => {
   const [firstName, setFirstName] = useState<string>("");
-
   const [lastName, setLastName] = useState<string>("");
+  const { unreadCount } = useNotifications();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -60,6 +62,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick }) => {
       label: "Patients",
       icon: Users,
       path: "/patients",
+    },
+    {
+      id: "notifications",
+      label: "Notifications",
+      icon: Bell,
+      path: "/notifications",
     },
     {
       id: "waiting-list",
@@ -146,12 +154,19 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick }) => {
                   onMouseLeave={(e) => handleMouseLeave(e, isActive)}
                 >
                   <div className="flex items-center space-x-3">
-                    <Icon
-                      size={20}
-                      className={`transition-transform duration-200 ${
-                        isActive ? "scale-110" : "group-hover:scale-105"
-                      }`}
-                    />
+                    <div className="relative">
+                      <Icon
+                        size={20}
+                        className={`transition-transform duration-200 ${
+                          isActive ? "scale-110" : "group-hover:scale-105"
+                        }`}
+                      />
+                      {item.id === "notifications" && unreadCount > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-sm">{item.label}</span>
                   </div>
                   <ChevronRight

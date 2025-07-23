@@ -7,6 +7,7 @@ import * as moment from 'moment';
 import { Schedule } from 'src/schedule/schedule.schema';
 import { Patient } from 'src/patient/patient.schema';
 import { User } from 'src/user/user.schema';
+import { NotificationService } from '../notification/notification.service';
 
 
 @Injectable()
@@ -19,6 +20,7 @@ export class AppointmentService {
     private readonly patientModel: Model<Patient>,
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
+    private readonly notificationService: NotificationService,
   ) {}
 
 
@@ -112,6 +114,19 @@ async create(dto: CreateAppointmentDto): Promise<Appointment> {
   // 5️⃣ Create appointment
   const appointment = new this.appointmentModel(dto);
   const savedAppointment = await appointment.save();
+
+  // 🔔 Notify doctor of new appointment
+  try {
+    await this.notificationService.notifyDoctorOfNewAppointment(
+      dto.doctor,
+      dto.patient,
+      (savedAppointment as any)._id.toString(),
+      new Date(dto.dateTime)
+    );
+  } catch (error) {
+    console.error('Failed to send notification to doctor:', error);
+    // Don't fail the appointment creation if notification fails
+  }
 
   // 6️⃣ Add the appointment time slot to pauses
   const appointmentStartTime = requestedTime.format('HH:mm');

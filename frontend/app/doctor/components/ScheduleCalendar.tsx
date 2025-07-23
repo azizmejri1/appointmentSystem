@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Calendar,
   Clock,
@@ -55,10 +55,14 @@ const ScheduleCalendar: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState<boolean>(false);
 
-  const [profileId] = useState<string | null>(
-    typeof window !== "undefined" ? localStorage.getItem("profileId") : null
-  );
+  // Handle client-side hydration
+  useEffect(() => {
+    setIsClient(true);
+    setProfileId(localStorage.getItem("profileId"));
+  }, []);
 
   const currentDoctor: Doctor = { id: profileId };
 
@@ -398,7 +402,7 @@ const ScheduleCalendar: React.FC = () => {
           <div className="flex justify-center mt-6">
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || !currentDoctor.id}
+              disabled={isSubmitting || !isClient || !currentDoctor.id}
               className="text-white font-semibold py-3 px-8 rounded-lg shadow-md bg-blue-600 hover:shadow-lg disabled:opacity-50"
             >
               <Save className="w-4 h-4 inline" />{" "}

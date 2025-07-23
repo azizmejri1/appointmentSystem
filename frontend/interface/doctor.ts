@@ -16,6 +16,8 @@ export interface Doctor {
   location_maps?: string;
   credential_img?: string;
   verified: boolean;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
   description?: string;
   keywords?: string[];
 }
