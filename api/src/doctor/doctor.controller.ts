@@ -43,6 +43,16 @@ export class DoctorController {
     return { cities };
   }
 
+  @Get(':id/statistics')
+  async getDoctorStatistics(@Param('id') id: string) {
+    return this.doctorService.getDoctorStatistics(id);
+  }
+
+  @Get(':id/performance-metrics')
+  async getDoctorPerformanceMetrics(@Param('id') id: string) {
+    return this.doctorService.getDoctorPerformanceMetrics(id);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<Doctor> {
     return this.doctorService.findOne(id);

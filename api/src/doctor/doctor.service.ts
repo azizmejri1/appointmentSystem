@@ -5,6 +5,8 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { Doctor } from './doctor.schema';
 import { User } from '../user/user.schema';
+import { Appointment } from '../appointment/appointment.schema';
+import { Patient } from '../patient/patient.schema';
 import { CreateDoctorDto } from './dto/create-doctor.dto';
 import { UpdateDoctorDto } from './dto/update-doctor.dto';
 import { EmailService } from '../email/email.service';
@@ -14,6 +16,8 @@ export class DoctorService {
   constructor(
     @InjectModel(Doctor.name) private doctorModel: Model<Doctor>,
     @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Appointment.name) private appointmentModel: Model<Appointment>,
+    @InjectModel(Patient.name) private patientModel: Model<Patient>,
     private emailService: EmailService,
   ) {}
 
@@ -338,6 +342,145 @@ export class DoctorService {
       };
     } catch (error) {
       throw new Error(`Failed to send test email: ${error.message}`);
+    }
+  }
+
+  async getDoctorStatistics(doctorId: string) {
+    try {
+      // Get current date boundaries
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfWeek = new Date(startOfToday.getTime() - (startOfToday.getDay() * 24 * 60 * 60 * 1000));
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+      // Total appointments
+      const totalAppointments = await this.appointmentModel.countDocuments({ doctor: doctorId });
+
+      // Appointments by status
+      const appointmentsByStatus = await this.appointmentModel.aggregate([
+        { $match: { doctor: doctorId } },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+        { $project: { status: '$_id', count: 1, _id: 0 } }
+      ]);
+
+      // Appointments this week
+      const appointmentsThisWeek = await this.appointmentModel.countDocuments({
+        doctor: doctorId,
+        dateTime: { $gte: startOfWeek }
+      });
+
+      // Appointments this month
+      const appointmentsThisMonth = await this.appointmentModel.countDocuments({
+        doctor: doctorId,
+        dateTime: { $gte: startOfMonth }
+      });
+
+      // Appointments today
+      const appointmentsToday = await this.appointmentModel.countDocuments({
+        doctor: doctorId,
+        dateTime: {
+          $gte: startOfToday,
+          $lt: new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000)
+        }
+      });
+
+      // Unique patients count
+      const uniquePatients = await this.appointmentModel.distinct('patient', { doctor: doctorId });
+
+      // Monthly appointments for the last 6 months
+      const monthlyStats = await this.appointmentModel.aggregate([
+        {
+          $match: {
+            doctor: doctorId,
+            dateTime: { $gte: new Date(now.getFullYear(), now.getMonth() - 5, 1) }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$dateTime' },
+              month: { $month: '$dateTime' }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1 } }
+      ]);
+
+      // Revenue calculation - remove since no real fee data
+      // const revenueStats = [{
+      //   totalRevenue: totalAppointments * 50, // Assumed base fee
+      //   averageFee: 50
+      // }];
+
+      // Recent appointments
+      const recentAppointments = await this.appointmentModel
+        .find({ doctor: doctorId })
+        .populate({
+          path: 'patient',
+          populate: {
+            path: 'user',
+            select: 'firstName lastName email'
+          }
+        })
+        .sort({ dateTime: -1 })
+        .limit(5);
+
+      return {
+        overview: {
+          totalAppointments,
+          appointmentsToday,
+          appointmentsThisWeek,
+          appointmentsThisMonth,
+          uniquePatients: uniquePatients.length
+        },
+        appointmentsByStatus: appointmentsByStatus.reduce((acc, item) => {
+          acc[item.status] = item.count;
+          return acc;
+        }, {}),
+        monthlyTrends: monthlyStats.map(item => ({
+          month: `${item._id.year}-${item._id.month.toString().padStart(2, '0')}`,
+          appointments: item.count
+        })),
+        recentAppointments
+      };
+    } catch (error) {
+      console.error('Error fetching doctor statistics:', error);
+      throw new Error('Failed to fetch statistics');
+    }
+  }
+
+  async getDoctorPerformanceMetrics(doctorId: string) {
+    try {
+      // Cancellation rate
+      const totalAppointments = await this.appointmentModel.countDocuments({ doctor: doctorId });
+      const cancelledAppointments = await this.appointmentModel.countDocuments({ 
+        doctor: doctorId, 
+        status: 'cancelled' 
+      });
+
+      // No-show rate
+      const noShowAppointments = await this.appointmentModel.countDocuments({ 
+        doctor: doctorId, 
+        status: 'no-show' 
+      });
+
+      // Completion rate
+      const completedAppointments = await this.appointmentModel.countDocuments({ 
+        doctor: doctorId, 
+        status: 'completed' 
+      });
+
+      return {
+        cancellationRate: totalAppointments > 0 ? (cancelledAppointments / totalAppointments * 100) : 0,
+        noShowRate: totalAppointments > 0 ? (noShowAppointments / totalAppointments * 100) : 0,
+        completionRate: totalAppointments > 0 ? (completedAppointments / totalAppointments * 100) : 0,
+        totalAppointments
+      };
+    } catch (error) {
+      console.error('Error fetching doctor performance metrics:', error);
+      throw new Error('Failed to fetch performance metrics');
     }
   }
 
