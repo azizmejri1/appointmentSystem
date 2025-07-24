@@ -34,6 +34,12 @@ export class Doctor extends Document {
   @Prop({ default: false })
   emailVerified?: boolean;
 
+  @Prop()
+  emailVerificationToken?: string;
+
+  @Prop()
+  emailVerificationExpires?: Date;
+
   @Prop({ default: false })
   phoneVerified?: boolean;
 }

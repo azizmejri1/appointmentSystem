@@ -6,6 +6,7 @@ import {
   AlertCircle,
   AlertTriangle,
   X,
+  Info,
 } from "lucide-react";
 import AppointmentBookingModal from "./AppointmentBookingModal";
 
@@ -18,9 +19,13 @@ interface Doctor {
 }
 
 interface NotificationMessage {
-  type: "success" | "error" | "warning";
+  type: "success" | "error" | "warning" | "info";
   title: string;
   message: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 interface DoctorProfileCardProps {
@@ -60,6 +65,54 @@ const DoctorProfileCard: React.FC<DoctorProfileCardProps> = ({
 
   const handleAppointmentClick = () => {
     setIsModalOpen(true);
+  };
+
+  const handleJoinWaitingList = async (errorData: any) => {
+    try {
+      const patientId = localStorage.getItem("profileId");
+
+      if (!patientId) {
+        setNotification({
+          type: "warning",
+          title: "Authentication Required",
+          message: "Please log in to join the waiting list.",
+        });
+        return;
+      }
+
+      const response = await fetch("http://localhost:8080/waiting-list/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          doctorId: errorData.doctorId,
+          patientId: patientId,
+          requestedDate: errorData.requestedDate,
+        }),
+      });
+
+      if (response.ok) {
+        setNotification({
+          type: "success",
+          title: "Added to Waiting List",
+          message: `You've been added to the waiting list for ${errorData.requestedDate}. We'll notify you if a slot becomes available.`,
+        });
+      } else {
+        setNotification({
+          type: "error",
+          title: "Failed to Join Waiting List",
+          message: "Unable to add you to the waiting list. Please try again.",
+        });
+      }
+    } catch (error) {
+      setNotification({
+        type: "error",
+        title: "Network Error",
+        message: "Unable to connect to the server. Please try again.",
+      });
+    }
   };
 
   const handleBookAppointment = async (appointmentData: {
@@ -122,12 +175,52 @@ const DoctorProfileCard: React.FC<DoctorProfileCardProps> = ({
               "This appointment slot is no longer available. Please choose a different time.",
           });
         } else if (response.status === 400) {
-          setNotification({
-            type: "error",
-            title: "Invalid Request",
-            message:
-              "There was an issue with your appointment request. Please try again.",
-          });
+          try {
+            const errorData = JSON.parse(errorText);
+            let errorMessage =
+              "There was an issue with your appointment request.";
+
+            // Handle specific error messages for unavailable dates
+            if (errorData.canJoinWaitingList && errorData.requestedDate) {
+              setNotification({
+                type: "info",
+                title: "Doctor Not Available",
+                message: `Dr. ${
+                  doctor
+                    ? doctor.firstName + " " + doctor.lastName
+                    : "the doctor"
+                } is not available on ${
+                  errorData.requestedDate
+                }. Would you like to join the waiting list for this date?`,
+                action: {
+                  label: "Join Waiting List",
+                  onClick: () => handleJoinWaitingList(errorData),
+                },
+              });
+              return;
+            } else if (
+              errorData.message &&
+              errorData.message.includes("not available on")
+            ) {
+              errorMessage =
+                errorData.message +
+                " Please choose a different day when the doctor is available.";
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            }
+
+            setNotification({
+              type: "error",
+              title: "Booking Failed",
+              message: errorMessage,
+            });
+          } catch (parseError) {
+            setNotification({
+              type: "error",
+              title: "Booking Failed",
+              message: "There was an issue with your appointment request.",
+            });
+          }
         } else {
           setNotification({
             type: "error",
@@ -168,6 +261,8 @@ const DoctorProfileCard: React.FC<DoctorProfileCardProps> = ({
           return <AlertCircle className="w-5 h-5 text-red-500" />;
         case "warning":
           return <AlertTriangle className="w-5 h-5 text-amber-500" />;
+        case "info":
+          return <Info className="w-5 h-5 text-blue-500" />;
         default:
           return <AlertCircle className="w-5 h-5 text-red-500" />;
       }
@@ -181,6 +276,8 @@ const DoctorProfileCard: React.FC<DoctorProfileCardProps> = ({
           return "bg-red-50 border-red-200";
         case "warning":
           return "bg-amber-50 border-amber-200";
+        case "info":
+          return "bg-blue-50 border-blue-200";
         default:
           return "bg-red-50 border-red-200";
       }
@@ -194,6 +291,8 @@ const DoctorProfileCard: React.FC<DoctorProfileCardProps> = ({
           return "text-red-800";
         case "warning":
           return "text-amber-800";
+        case "info":
+          return "text-blue-800";
         default:
           return "text-red-800";
       }
@@ -212,6 +311,21 @@ const DoctorProfileCard: React.FC<DoctorProfileCardProps> = ({
             <p className={`text-sm ${getTextColor().replace("800", "700")}`}>
               {notification.message}
             </p>
+            {notification.action && (
+              <button
+                onClick={() => {
+                  notification.action?.onClick();
+                  onClose();
+                }}
+                className={`mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  notification.type === "info"
+                    ? "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                }`}
+              >
+                {notification.action.label}
+              </button>
+            )}
           </div>
           <button
             onClick={onClose}

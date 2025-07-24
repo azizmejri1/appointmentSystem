@@ -13,13 +13,14 @@ export async function handleSignIn(data: SignInData) {
 
     console.log("✅ Sign in successful:", response.data);
 
-    const { userId, profileId,firstName,lastName } = response.data;
+    const { userId, profileId,firstName,lastName,role } = response.data;
 
     if (userId) {
       localStorage.setItem('userId', userId);
       localStorage.setItem('profileId',profileId);
       localStorage.setItem('firstName',firstName);
       localStorage.setItem('lastName',lastName);
+      localStorage.setItem('role',role);
     }
 
     return response.data;

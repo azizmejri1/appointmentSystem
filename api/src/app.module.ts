@@ -10,12 +10,14 @@ import { WaitingListModule } from './waiting-list/waiting-list.module';
 import { NotificationModule } from './notification/notification.module';
 import { AuthModule } from './auth/auth.module';
 import { ScheduleModule } from './schedule/schedule.module';
+import { EmailModule } from './email/email.module';
 
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     MongooseModule.forRoot(process.env.MONGODB_URI!),
+    EmailModule,
     UserModule,
     DoctorModule,
     PatientModule,

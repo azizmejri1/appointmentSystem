@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   AlertCircle,
   Info,
+  CheckCircle,
 } from "lucide-react";
 import WaitingList from "@/app/patient/components/WaitingList";
 
@@ -44,9 +45,13 @@ interface AppointmentBookingModalProps {
 }
 
 interface ErrorMessage {
-  type: "error" | "warning" | "info";
+  type: "error" | "warning" | "info" | "success";
   title: string;
   message: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
@@ -177,6 +182,24 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Check if a date is available based on doctor's schedule
+  const isDateAvailable = (date: Date) => {
+    if (!schedule) return false;
+
+    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+
+    return schedule.availability.some((slot) => {
+      const slotDay = slot.day.toLowerCase().trim();
+      const targetDay = dayName.toLowerCase().trim();
+
+      return (
+        slotDay === targetDay ||
+        slotDay.includes(targetDay) ||
+        slotDay.startsWith(targetDay)
+      );
+    });
   };
 
   // Generate time slots for selected date - ENHANCED DEBUGGING
@@ -334,8 +357,118 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
     }
   }, [selectedDate, schedule]);
 
-  const handleDateSelect = (date: Date) => {
+  const handleDateSelect = async (date: Date) => {
     setSelectedDate(date);
+
+    // If date is not available, check if we can join waiting list
+    if (!isDateAvailable(date)) {
+      console.log("📅 Date not available, checking waiting list options...");
+      await checkAvailabilityAndPromptWaitingList(date);
+    }
+  };
+
+  // Check availability and prompt for waiting list if needed
+  const checkAvailabilityAndPromptWaitingList = async (date: Date) => {
+    try {
+      const response = await fetch(
+        "http://localhost:8080/appointments/check-availability",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            doctorId: doctor._id,
+            dateTime: date.toISOString(),
+            duration: schedule?.appointmentDuration || 30,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.log("❌ Availability check error:", errorData);
+
+        if (errorData.canJoinWaitingList && errorData.requestedDate) {
+          setError({
+            type: "info",
+            title: "Doctor Not Available",
+            message: `Dr. ${doctor.firstName} ${doctor.lastName} is not available on ${errorData.requestedDate}. Would you like to join the waiting list for this date?`,
+            action: {
+              label: "Join Waiting List",
+              onClick: () => handleJoinWaitingList(errorData),
+            },
+          });
+        } else {
+          setError({
+            type: "warning",
+            title: "Date Not Available",
+            message: `Dr. ${doctor.firstName} ${doctor.lastName} is not available on this date.`,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error checking availability:", error);
+      setError({
+        type: "error",
+        title: "Connection Error",
+        message: "Unable to check availability. Please try again.",
+      });
+    }
+  };
+
+  // Handle joining waiting list
+  const handleJoinWaitingList = async (errorData: any) => {
+    try {
+      const patientId = localStorage.getItem("profileId");
+      if (!patientId) {
+        setError({
+          type: "error",
+          title: "Authentication Required",
+          message: "Please log in to join the waiting list.",
+        });
+        return;
+      }
+
+      const response = await fetch("http://localhost:8080/waiting-list/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          doctorId: doctor._id,
+          patientId: patientId,
+          preferredDate: errorData.requestedDate,
+          preferredTime: "Any",
+          reason: `Patient wants appointment on ${errorData.requestedDate}`,
+        }),
+      });
+
+      if (response.ok) {
+        setError({
+          type: "success",
+          title: "Added to Waiting List!",
+          message: `You've been added to the waiting list for Dr. ${doctor.firstName} ${doctor.lastName} on ${errorData.requestedDate}. We'll notify you if a slot becomes available.`,
+        });
+      } else {
+        const errorText = await response.text();
+        console.error("❌ Waiting list error:", errorText);
+        setError({
+          type: "error",
+          title: "Failed to Join Waiting List",
+          message: "Unable to add you to the waiting list. Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error joining waiting list:", error);
+      setError({
+        type: "error",
+        title: "Network Error",
+        message: "Unable to connect to our servers. Please try again.",
+      });
+    }
   };
 
   const handleTimeSelect = (time: string) => {
@@ -373,6 +506,8 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
           return <AlertTriangle className="w-5 h-5 text-amber-500" />;
         case "info":
           return <Info className="w-5 h-5 text-blue-500" />;
+        case "success":
+          return <CheckCircle className="w-5 h-5 text-green-500" />;
         default:
           return <AlertCircle className="w-5 h-5 text-red-500" />;
       }
@@ -386,6 +521,8 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
           return "bg-amber-50 border-amber-200";
         case "info":
           return "bg-blue-50 border-blue-200";
+        case "success":
+          return "bg-green-50 border-green-200";
         default:
           return "bg-red-50 border-red-200";
       }
@@ -399,8 +536,25 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
           return "text-amber-800";
         case "info":
           return "text-blue-800";
+        case "success":
+          return "text-green-800";
         default:
           return "text-red-800";
+      }
+    };
+
+    const getButtonColor = () => {
+      switch (error.type) {
+        case "error":
+          return "bg-red-600 hover:bg-red-700 text-white";
+        case "warning":
+          return "bg-amber-600 hover:bg-amber-700 text-white";
+        case "info":
+          return "bg-blue-600 hover:bg-blue-700 text-white";
+        case "success":
+          return "bg-green-600 hover:bg-green-700 text-white";
+        default:
+          return "bg-red-600 hover:bg-red-700 text-white";
       }
     };
 
@@ -412,9 +566,19 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
             <h4 className={`font-semibold ${getTextColor()} mb-1`}>
               {error.title}
             </h4>
-            <p className={`text-sm ${getTextColor().replace("800", "700")}`}>
+            <p
+              className={`text-sm ${getTextColor().replace("800", "700")} mb-3`}
+            >
               {error.message}
             </p>
+            {error.action && (
+              <button
+                onClick={error.action.onClick}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${getButtonColor()}`}
+              >
+                {error.action.label}
+              </button>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -423,7 +587,9 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
                 ? "hover:bg-red-600 text-red-400 hover:text-red-600"
                 : error.type === "warning"
                 ? "hover:bg-amber-600 text-amber-400 hover:text-amber-600"
-                : "hover:bg-blue-600 text-blue-400 hover:text-blue-600"
+                : error.type === "info"
+                ? "hover:bg-blue-600 text-blue-400 hover:text-blue-600"
+                : "hover:bg-green-600 text-green-400 hover:text-green-600"
             }`}
           >
             <X className="w-4 h-4" />
@@ -514,6 +680,33 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Select Date
             </h3>
+
+            {/* Show available days info */}
+            {schedule && (
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Available days:</strong>{" "}
+                  {schedule.availability.map((slot) => slot.day).join(", ")}
+                </p>
+              </div>
+            )}
+
+            {/* Calendar Legend */}
+            <div className="mb-4 flex flex-wrap gap-4 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-blue-600 rounded"></div>
+                <span className="text-gray-600">Selected</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-blue-50 border border-blue-200 rounded"></div>
+                <span className="text-gray-600">Available</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border border-dashed border-orange-300 rounded"></div>
+                <span className="text-gray-600">Join waiting list</span>
+              </div>
+            </div>
+
             <div className="mb-4">
               <h4 className="text-center font-medium text-gray-900 mb-2">
                 {monthNames[today.getMonth()]} {today.getFullYear()}
@@ -532,25 +725,37 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
             </div>
 
             <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map((date, index) => (
-                <button
-                  key={index}
-                  onClick={() => date && handleDateSelect(date)}
-                  disabled={!date}
-                  className={`
-                    h-10 text-sm rounded-lg transition-all duration-200
-                    ${
-                      !date
-                        ? "invisible"
-                        : selectedDate?.toDateString() === date.toDateString()
-                        ? "bg-blue-600 text-white font-semibold"
-                        : "hover:bg-blue-50 text-gray-700"
+              {calendarDays.map((date, index) => {
+                const isAvailable = date ? isDateAvailable(date) : false;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => date && handleDateSelect(date)}
+                    disabled={!date}
+                    className={`
+                      h-10 text-sm rounded-lg transition-all duration-200
+                      ${
+                        !date
+                          ? "invisible"
+                          : !isAvailable
+                          ? "text-gray-500 hover:bg-orange-50 hover:text-orange-700 border border-dashed border-orange-300"
+                          : selectedDate?.toDateString() === date.toDateString()
+                          ? "bg-blue-600 text-white font-semibold"
+                          : "hover:bg-blue-50 text-gray-700"
+                      }
+                    `}
+                    title={
+                      date && !isAvailable
+                        ? "Doctor is not available on this day - Click to join waiting list"
+                        : date && isAvailable
+                        ? "Available day - Click to see time slots"
+                        : undefined
                     }
-                  `}
-                >
-                  {date?.getDate()}
-                </button>
-              ))}
+                  >
+                    {date?.getDate()}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

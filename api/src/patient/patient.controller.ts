@@ -35,4 +35,24 @@ export class PatientController {
   async delete(@Param('id') id: string) {
     return this.patientService.delete(id);
   }
+
+  @Post('verify-email/:token')
+  async verifyEmail(@Param('token') token: string) {
+    return this.patientService.verifyEmail(token);
+  }
+
+  @Post(':id/resend-verification')
+  async resendVerificationEmail(@Param('id') id: string) {
+    return this.patientService.resendVerificationEmail(id);
+  }
+
+  @Post(':id/verify-phone')
+  async verifyPhone(@Param('id') id: string, @Body() body: { phoneNumber: string }) {
+    return this.patientService.verifyPhone(id, body.phoneNumber);
+  }
+
+  @Get(':id/appointments')
+  async getPatientAppointments(@Param('id') id: string) {
+    return this.patientService.getPatientAppointments(id);
+  }
 }

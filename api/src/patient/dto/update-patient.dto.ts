@@ -1,13 +1,19 @@
 import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class UpdatePatientDto {
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
-    fullName?: string;
+    firstName?: string;
+
+    @IsOptional()
+    @IsString()
+    lastName?: string;
   
+    @IsOptional()
     @IsEmail()
     email?: string;
   
+    @IsOptional()
     @IsString()
     @MinLength(6)
     password?: string;
@@ -19,6 +25,4 @@ export class UpdatePatientDto {
     @IsOptional()
     @IsString()
     phoneNumber?: string;
-
-
-  }
+}

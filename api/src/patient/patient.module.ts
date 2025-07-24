@@ -5,13 +5,17 @@ import { PatientController } from './patient.controller';
 import { PatientService } from './patient.service';
 import { User, UserSchema } from 'src/user/user.schema';
 import { Appointment, AppointmentSchema } from 'src/appointment/appointment.schema';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [MongooseModule.forFeature([
-    { name: Patient.name, schema: PatientSchema },
-    { name: User.name, schema: UserSchema },
-    { name: Appointment.name, schema: AppointmentSchema },
-  ])],
+  imports: [
+    MongooseModule.forFeature([
+      { name: Patient.name, schema: PatientSchema },
+      { name: User.name, schema: UserSchema },
+      { name: Appointment.name, schema: AppointmentSchema },
+    ]),
+    EmailModule,
+  ],
   exports: [MongooseModule],
   controllers: [PatientController],
   providers: [PatientService],

@@ -26,6 +26,12 @@ export class AppointmentController {
     return this.appointmentService.create(dto);
   }
 
+  @Post('check-availability')
+  @Roles('patient','doctor')
+  checkAvailability(@Body() dto: CreateAppointmentDto) {
+    return this.appointmentService.checkAvailability(dto);
+  }
+
   @Put(':id')
   // @Roles('patient') // Temporarily disabled for testing - doctors should be able to update status
   update(@Param('id') id: string, @Body() body: Partial<CreateAppointmentDto>) {

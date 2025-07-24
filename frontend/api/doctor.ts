@@ -126,7 +126,7 @@ export async function verifyPhoneNumber(doctorId: string, phoneNumber: string): 
 
 export async function verifyEmail(doctorId: string): Promise<any> {
   try {
-    const response = await axios.post(`${BASE_URL}/${doctorId}/verify-email`, {}, {
+    const response = await axios.post(`${BASE_URL}/verify-email/${doctorId}`, {}, {
       withCredentials: true,
     });
     return response.data;

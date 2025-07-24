@@ -1,17 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { Doctor } from './doctor.schema';
 import { User } from '../user/user.schema';
 import { CreateDoctorDto } from './dto/create-doctor.dto';
 import { UpdateDoctorDto } from './dto/update-doctor.dto';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class DoctorService {
   constructor(
     @InjectModel(Doctor.name) private doctorModel: Model<Doctor>,
     @InjectModel(User.name) private userModel: Model<User>,
+    private emailService: EmailService,
   ) {}
 
   async signup(data: CreateDoctorDto) {
@@ -26,12 +29,30 @@ export class DoctorService {
       phoneNumber : data.phoneNumber,
     });
 
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     const doctor = await this.doctorModel.create({
       user: user._id,
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: verificationExpires,
     });
 
+    // Send verification email
+    try {
+      await this.emailService.sendVerificationEmail(
+        user.email,
+        verificationToken,
+        `${user.firstName} ${user.lastName}`
+      );
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+      // Don't fail the signup if email fails, just log it
+    }
+
     return {
-      message: 'Doctor created successfully',
+      message: 'Doctor created successfully. Please check your email for verification.',
       data: { userId: user._id, doctorId: doctor._id },
     };
   }
@@ -176,16 +197,77 @@ export class DoctorService {
     };
   }
 
-  async verifyEmail(doctorId: string) {
+  async verifyEmail(token: string) {
+    const doctor = await this.doctorModel.findOne({
+      emailVerificationToken: token,
+      emailVerificationExpires: { $gt: new Date() }
+    }).populate('user');
+
+    if (!doctor) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    // Mark email as verified
+    doctor.emailVerified = true;
+    doctor.emailVerificationToken = undefined;
+    doctor.emailVerificationExpires = undefined;
+    await doctor.save();
+
+    // Send welcome email
+    const user = doctor.user as any;
+    try {
+      await this.emailService.sendWelcomeEmail(
+        user.email,
+        `${user.firstName} ${user.lastName}`
+      );
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+      // Don't fail the verification if welcome email fails
+    }
+
+    return {
+      message: 'Email verified successfully! Welcome to MedSchedule.',
+      data: {
+        doctorId: doctor._id,
+        emailVerified: true,
+      },
+    };
+  }
+
+  async resendVerificationEmail(doctorId: string) {
     const doctor = await this.doctorModel.findById(doctorId).populate('user');
     if (!doctor) throw new NotFoundException('Doctor not found');
 
-    // Here you would implement actual email verification logic
-    // For now, we'll just return a success message
-    return {
-      message: 'Email verification initiated',
-      data: doctor,
-    };
+    if (doctor.emailVerified) {
+      throw new BadRequestException('Email is already verified');
+    }
+
+    // Generate new verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    doctor.emailVerificationToken = verificationToken;
+    doctor.emailVerificationExpires = verificationExpires;
+    await doctor.save();
+
+    const user = doctor.user as any;
+    
+    // Send verification email
+    try {
+      await this.emailService.sendVerificationEmail(
+        user.email,
+        verificationToken,
+        `${user.firstName} ${user.lastName}`
+      );
+
+      return {
+        message: 'Verification email sent successfully',
+        data: { email: user.email },
+      };
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+      throw new BadRequestException('Failed to send verification email');
+    }
   }
 
 }

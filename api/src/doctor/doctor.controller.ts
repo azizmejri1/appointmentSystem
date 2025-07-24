@@ -63,9 +63,14 @@ export class DoctorController {
     return this.doctorService.verifyPhone(id, body.phoneNumber);
   }
 
-  @Post(':id/verify-email')
-  async verifyEmail(@Param('id') id: string) {
-    return this.doctorService.verifyEmail(id);
+  @Post('verify-email/:token')
+  async verifyEmail(@Param('token') token: string) {
+    return this.doctorService.verifyEmail(token);
+  }
+
+  @Post(':id/resend-verification')
+  async resendVerificationEmail(@Param('id') id: string) {
+    return this.doctorService.resendVerificationEmail(id);
   }
 
 }

@@ -21,11 +21,16 @@ export default function Navbar({
   setShowSignUp: Dispatch<SetStateAction<boolean>>;
 }) {
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     const checkLoggedIn = async () => {
       const result = await isLoggedIn();
       setLoggedIn(result);
+      if (result) {
+        const userRole = localStorage.getItem("role");
+        setRole(userRole);
+      }
     };
     checkLoggedIn();
   }, []);
@@ -88,13 +93,15 @@ export default function Navbar({
                 <Button variant="secondary" onClick={handleLogout}>
                   Logout
                 </Button>
-                <Button
-                  className="ml-2"
-                  style={{ backgroundColor: "#0e77d6", color: "white" }}
-                  asChild
-                >
-                  <Link href="/profile">Profile</Link>
-                </Button>
+                {loggedIn && role === "patient" && (
+                  <Button
+                    className="ml-2"
+                    style={{ backgroundColor: "#0e77d6", color: "white" }}
+                    asChild
+                  >
+                    <Link href="/profile">Profile</Link>
+                  </Button>
+                )}
               </div>
             ) : (
               <div>

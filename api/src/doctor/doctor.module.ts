@@ -4,9 +4,16 @@ import { Doctor, DoctorSchema } from './doctor.schema';
 import { DoctorController } from './doctor.controller';
 import { DoctorService } from './doctor.service';
 import { User, UserSchema } from 'src/user/user.schema';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Doctor.name, schema: DoctorSchema },{ name: User.name, schema: UserSchema }])],
+  imports: [
+    MongooseModule.forFeature([
+      { name: Doctor.name, schema: DoctorSchema },
+      { name: User.name, schema: UserSchema }
+    ]),
+    EmailModule,
+  ],
   exports: [MongooseModule],
   controllers: [DoctorController],
   providers: [DoctorService],

@@ -23,11 +23,46 @@ export class AppointmentService {
     private readonly notificationService: NotificationService,
   ) {}
 
+  async checkAvailability(dto: CreateAppointmentDto): Promise<{
+    isAvailable: boolean;
+    availableSlot?: any;
+    availableDays: string[];
+    canJoinWaitingList: boolean;
+    requestedDate: string;
+  }> {
+    const requestedTime = moment(dto.dateTime);
+    const fullDateString = requestedTime.format('dddd MMMM D');
+    
+    const schedule = await this.scheduleModel.findOne({ doctorId: dto.doctor });
+    if (!schedule) {
+      return {
+        isAvailable: false,
+        availableDays: [],
+        canJoinWaitingList: false,
+        requestedDate: fullDateString,
+      };
+    }
+
+    const availableSlot = schedule.availability.find(
+      (slot) => slot.day.trim().toLowerCase() === fullDateString.trim().toLowerCase()
+    );
+
+    return {
+      isAvailable: !!availableSlot,
+      availableSlot: availableSlot || null,
+      availableDays: schedule.availability.map(slot => slot.day),
+      canJoinWaitingList: !availableSlot, // Can join waiting list if not available
+      requestedDate: fullDateString,
+    };
+  }
 
 async create(dto: CreateAppointmentDto): Promise<Appointment> {
   console.log("Received DTO:", dto); // Debugging log
   const requestedTime = moment(dto.dateTime); // this is your requested date/time
   const dayOfWeek = requestedTime.format('dddd'); // e.g., Monday
+  const fullDateString = requestedTime.format('dddd MMMM D'); // e.g., Friday July 25
+  console.log("Extracted day of week:", dayOfWeek);
+  console.log("Full date string:", fullDateString);
 
   // 1️⃣ fetch the doctor’s schedule
   const schedule = await this.scheduleModel.findOne({ doctorId: dto.doctor });
@@ -36,11 +71,26 @@ async create(dto: CreateAppointmentDto): Promise<Appointment> {
   }
 
   const availableSlot = schedule.availability.find(
-    (slot) => slot.day === dayOfWeek,
+    (slot) => {
+      console.log(`Comparing: "${slot.day}" === "${fullDateString}"`);
+      // Check for exact match of the full date string
+      return slot.day.trim().toLowerCase() === fullDateString.trim().toLowerCase();
+    }
   );
 
   if (!availableSlot) {
-    throw new BadRequestException(`Doctor is not available on ${dayOfWeek}.`);
+    console.log("Available days:", schedule.availability.map(slot => slot.day));
+    
+    // Return detailed error information for waiting list functionality
+    const errorResponse = {
+      message: `Doctor is not available on ${fullDateString}. Available days: ${schedule.availability.map(slot => slot.day).join(', ')}`,
+      canJoinWaitingList: true,
+      availableDays: schedule.availability.map(slot => slot.day),
+      requestedDate: fullDateString,
+      doctorId: dto.doctor
+    };
+    
+    throw new BadRequestException(errorResponse);
   }
 
   // 2️⃣ construct `start` and `end` for *the SAME date as the appointment*
