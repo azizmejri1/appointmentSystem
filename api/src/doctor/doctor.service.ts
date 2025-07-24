@@ -29,13 +29,13 @@ export class DoctorService {
       phoneNumber : data.phoneNumber,
     });
 
-    // Generate verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    // Generate verification code (6 digits)
+    const verificationCode = this.emailService.generateVerificationCode();
+    const verificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     const doctor = await this.doctorModel.create({
       user: user._id,
-      emailVerificationToken: verificationToken,
+      emailVerificationCode: verificationCode,
       emailVerificationExpires: verificationExpires,
     });
 
@@ -43,7 +43,7 @@ export class DoctorService {
     try {
       await this.emailService.sendVerificationEmail(
         user.email,
-        verificationToken,
+        verificationCode,
         `${user.firstName} ${user.lastName}`
       );
     } catch (error) {
@@ -197,9 +197,68 @@ export class DoctorService {
     };
   }
 
+  async verifyEmailWithCode(code: string, doctorId: string) {
+    console.log('🔍 Doctor verification attempt:');
+    console.log('- Doctor ID:', doctorId);
+    console.log('- Code provided:', code);
+    console.log('- Current time:', new Date());
+
+    // First, let's find the doctor and see what codes exist
+    const doctorCheck = await this.doctorModel.findById(doctorId);
+    if (doctorCheck) {
+      console.log('- Stored code:', doctorCheck.emailVerificationCode);
+      console.log('- Code expiry:', doctorCheck.emailVerificationExpires);
+      console.log('- Code match:', doctorCheck.emailVerificationCode === code);
+      console.log('- Code not expired:', doctorCheck.emailVerificationExpires && doctorCheck.emailVerificationExpires > new Date());
+      console.log('- Code type:', typeof doctorCheck.emailVerificationCode);
+      console.log('- Provided code type:', typeof code);
+      console.log('- Email verified status:', doctorCheck.emailVerified);
+    } else {
+      console.log('❌ Doctor not found with ID:', doctorId);
+    }
+
+    const doctor = await this.doctorModel.findOne({
+      _id: doctorId,
+      emailVerificationCode: code,
+      emailVerificationExpires: { $gt: new Date() }
+    }).populate('user');
+
+    if (!doctor) {
+      console.log('❌ Doctor verification failed - no matching record found');
+      throw new BadRequestException('Invalid or expired verification code');
+    }
+
+    // Mark email as verified
+    doctor.emailVerified = true;
+    doctor.emailVerificationCode = undefined;
+    doctor.emailVerificationExpires = undefined;
+    await doctor.save();
+
+    // Send welcome email
+    const user = doctor.user as any;
+    try {
+      await this.emailService.sendWelcomeEmail(
+        user.email,
+        `${user.firstName} ${user.lastName}`
+      );
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+      // Don't fail the verification if welcome email fails
+    }
+
+    return {
+      message: 'Email verified successfully! Welcome to MedSchedule.',
+      data: {
+        emailVerified: true,
+        doctorId: doctor._id
+      }
+    };
+  }
+
+  // Keep the old method for backward compatibility but mark as deprecated
   async verifyEmail(token: string) {
     const doctor = await this.doctorModel.findOne({
-      emailVerificationToken: token,
+      emailVerificationCode: token, // Updated to use code field for compatibility
       emailVerificationExpires: { $gt: new Date() }
     }).populate('user');
 
@@ -209,7 +268,7 @@ export class DoctorService {
 
     // Mark email as verified
     doctor.emailVerified = true;
-    doctor.emailVerificationToken = undefined;
+    doctor.emailVerificationCode = undefined;
     doctor.emailVerificationExpires = undefined;
     await doctor.save();
 
@@ -242,11 +301,11 @@ export class DoctorService {
       throw new BadRequestException('Email is already verified');
     }
 
-    // Generate new verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    // Generate new verification code
+    const verificationCode = this.emailService.generateVerificationCode();
+    const verificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    doctor.emailVerificationToken = verificationToken;
+    doctor.emailVerificationCode = verificationCode;
     doctor.emailVerificationExpires = verificationExpires;
     await doctor.save();
 
@@ -256,17 +315,29 @@ export class DoctorService {
     try {
       await this.emailService.sendVerificationEmail(
         user.email,
-        verificationToken,
+        verificationCode,
         `${user.firstName} ${user.lastName}`
       );
 
       return {
-        message: 'Verification email sent successfully',
+        message: 'Verification code sent successfully',
         data: { email: user.email },
       };
     } catch (error) {
       console.error('Failed to send verification email:', error);
       throw new BadRequestException('Failed to send verification email');
+    }
+  }
+
+  async testEmail(email: string) {
+    try {
+      await this.emailService.sendTestEmail(email);
+      return {
+        success: true,
+        message: 'Test email sent successfully',
+      };
+    } catch (error) {
+      throw new Error(`Failed to send test email: ${error.message}`);
     }
   }
 

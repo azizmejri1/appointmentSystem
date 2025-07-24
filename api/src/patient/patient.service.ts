@@ -31,13 +31,13 @@ export class PatientService {
       gender : data.gender,
     });
 
-    // Generate email verification token
-    const emailVerificationToken = crypto.randomBytes(32).toString('hex');
-    const emailVerificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    // Generate email verification code
+    const emailVerificationCode = this.emailService.generateVerificationCode();
+    const emailVerificationExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     const patient = await this.patientModel.create({
       user: user._id,
-      emailVerificationToken,
+      emailVerificationCode,
       emailVerificationExpiry,
       isEmailVerified: false,
       isPhoneVerified: false,
@@ -45,9 +45,9 @@ export class PatientService {
 
     // Send verification email
     try {
-      await this.emailService.sendVerificationEmail(
+      await this.emailService.sendPatientVerificationEmail(
         data.email,
-        emailVerificationToken,
+        emailVerificationCode,
         `${data.firstName} ${data.lastName}`
       );
     } catch (error) {
@@ -158,9 +158,66 @@ export class PatientService {
     };
   }
 
+  async verifyEmailWithCode(code: string, patientId: string) {
+    console.log('🔍 Patient verification attempt:');
+    console.log('- Patient ID:', patientId);
+    console.log('- Code provided:', code);
+    console.log('- Current time:', new Date());
+
+    // First, let's find the patient and see what codes exist
+    const patientCheck = await this.patientModel.findById(patientId);
+    if (patientCheck) {
+      console.log('- Stored code:', patientCheck.emailVerificationCode);
+      console.log('- Code expiry:', patientCheck.emailVerificationExpiry);
+      console.log('- Code match:', patientCheck.emailVerificationCode === code);
+      console.log('- Code not expired:', patientCheck.emailVerificationExpiry && patientCheck.emailVerificationExpiry > new Date());
+      console.log('- Code type:', typeof patientCheck.emailVerificationCode);
+      console.log('- Provided code type:', typeof code);
+      console.log('- Email verified status:', patientCheck.isEmailVerified);
+    } else {
+      console.log('❌ Patient not found with ID:', patientId);
+    }
+
+    const patient = await this.patientModel.findOne({
+      _id: patientId,
+      emailVerificationCode: code,
+      emailVerificationExpiry: { $gt: new Date() },
+    }).populate('user');
+
+    if (!patient) {
+      console.log('❌ Patient verification failed - no matching record found');
+      throw new NotFoundException('Invalid or expired verification code');
+    }
+
+    patient.isEmailVerified = true;
+    patient.emailVerificationCode = undefined;
+    patient.emailVerificationExpiry = undefined;
+    await patient.save();
+
+    // Send welcome email (placeholder - you can create a patient welcome email template)
+    const user = patient.user as any;
+    try {
+      await this.emailService.sendWelcomeEmail(
+        user.email,
+        `${user.firstName} ${user.lastName}`
+      );
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+    }
+
+    return {
+      message: 'Email verified successfully',
+      data: { 
+        isEmailVerified: true,
+        patientId: patient._id
+      },
+    };
+  }
+
+  // Keep the old method for backward compatibility
   async verifyEmail(token: string) {
     const patient = await this.patientModel.findOne({
-      emailVerificationToken: token,
+      emailVerificationCode: token, // Updated to use code field for compatibility
       emailVerificationExpiry: { $gt: new Date() },
     }).populate('user');
 
@@ -169,7 +226,7 @@ export class PatientService {
     }
 
     patient.isEmailVerified = true;
-    patient.emailVerificationToken = undefined;
+    patient.emailVerificationCode = undefined;
     patient.emailVerificationExpiry = undefined;
     await patient.save();
 
@@ -203,18 +260,18 @@ export class PatientService {
       };
     }
 
-    // Generate new verification token
-    const emailVerificationToken = crypto.randomBytes(32).toString('hex');
-    const emailVerificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // Generate new verification code
+    const emailVerificationCode = this.emailService.generateVerificationCode();
+    const emailVerificationExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    patient.emailVerificationToken = emailVerificationToken;
+    patient.emailVerificationCode = emailVerificationCode;
     patient.emailVerificationExpiry = emailVerificationExpiry;
     await patient.save();
 
     const user = patient.user as any;
-    await this.emailService.sendVerificationEmail(
+    await this.emailService.sendPatientVerificationEmail(
       user.email,
-      emailVerificationToken,
+      emailVerificationCode,
       `${user.firstName} ${user.lastName}`
     );
 

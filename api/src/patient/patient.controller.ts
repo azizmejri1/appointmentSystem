@@ -41,6 +41,11 @@ export class PatientController {
     return this.patientService.verifyEmail(token);
   }
 
+  @Post(':id/verify-email-code')
+  async verifyEmailWithCode(@Param('id') id: string, @Body() body: { code: string }) {
+    return this.patientService.verifyEmailWithCode(body.code, id);
+  }
+
   @Post(':id/resend-verification')
   async resendVerificationEmail(@Param('id') id: string) {
     return this.patientService.resendVerificationEmail(id);

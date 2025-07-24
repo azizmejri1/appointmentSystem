@@ -14,7 +14,7 @@ export class Patient extends Document {
   isPhoneVerified: boolean;
 
   @Prop()
-  emailVerificationToken?: string;
+  emailVerificationCode?: string;
 
   @Prop()
   emailVerificationExpiry?: Date;

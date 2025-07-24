@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, useState } from "react";
 import { X, Mail, Lock, User, Eye, Phone, Calendar } from "lucide-react";
-import { handleSignUp } from "@/api/auth";
 import { useRouter } from "next/navigation";
+import EmailVerificationPopup from "./EmailVerificationPopup";
 
 export default function SignUp({
   setShowSignIn,
@@ -11,6 +11,12 @@ export default function SignUp({
   setShowSignUp: Dispatch<SetStateAction<boolean>>;
 }) {
   const [showPassword, setShowPassword] = useState(false);
+  const [showVerificationPopup, setShowVerificationPopup] = useState(false);
+  const [signupResponse, setSignupResponse] = useState<{
+    email: string;
+    userType: "doctor" | "patient";
+    userId: string;
+  } | null>(null);
   const router = useRouter();
   const [signUpData, setSignUpData] = useState({
     firstName: "",
@@ -25,18 +31,70 @@ export default function SignUp({
   const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Sign Up:", signUpData);
-    // Handle sign up logic here
-    const data = await handleSignUp(signUpData);
-    if (data.role == "patient") {
-      window.location.reload();
+
+    const { role, ...rest } = signUpData;
+
+    // Prepare payload to match DTO
+    const payload = {
+      firstName: rest.firstName,
+      lastName: rest.lastName,
+      email: rest.email,
+      password: rest.password,
+      gender: rest.gender,
+      phoneNumber: rest.phone,
+    };
+
+    let endpoint = "";
+    if (role === "patient") {
+      endpoint = "/patients/signup";
+    } else if (role === "doctor") {
+      endpoint = "/doctors/signup";
     } else {
-      router.push("/doctor/dashboard");
+      alert("Please select a role");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8080${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Sign up success:", data);
+
+        // Show verification popup instead of auto-signing in
+        setSignupResponse({
+          email: payload.email,
+          userType: role as "doctor" | "patient",
+          userId: role === "doctor" ? data.data.doctorId : data.data.patientId,
+        });
+        setShowVerificationPopup(true);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || "Signup failed");
+      }
+    } catch (error) {
+      console.error("❌ Sign up error:", error);
+      alert("Network error. Please try again.");
     }
   };
 
   const switchToSignIn = () => {
     setShowSignUp(false);
     setShowSignIn(true);
+  };
+
+  const handleVerificationSuccess = () => {
+    // After successful verification, close signup and show sign in
+    setShowVerificationPopup(false);
+    setShowSignUp(false);
+    setShowSignIn(true);
+    alert("Email verified successfully! Please sign in to continue.");
   };
 
   return (
@@ -288,6 +346,18 @@ export default function SignUp({
           </div>
         </form>
       </div>
+
+      {/* Email Verification Popup */}
+      {showVerificationPopup && signupResponse && (
+        <EmailVerificationPopup
+          isOpen={showVerificationPopup}
+          onClose={() => setShowVerificationPopup(false)}
+          email={signupResponse.email}
+          userType={signupResponse.userType}
+          userId={signupResponse.userId}
+          onVerificationSuccess={handleVerificationSuccess}
+        />
+      )}
     </div>
   );
 }

@@ -35,7 +35,7 @@ export class Doctor extends Document {
   emailVerified?: boolean;
 
   @Prop()
-  emailVerificationToken?: string;
+  emailVerificationCode?: string;
 
   @Prop()
   emailVerificationExpires?: Date;
