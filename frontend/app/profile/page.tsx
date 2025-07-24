@@ -80,6 +80,8 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
+    document.title = "My Profile - MedSchedule";
+
     const checkAuth = () => {
       const role = localStorage.getItem("role");
       const userId = localStorage.getItem("userId");

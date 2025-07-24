@@ -33,6 +33,10 @@ const App = () => {
   const [showSignUp, setShowSignUp] = useState(false);
 
   useEffect(() => {
+    document.title = "Find Doctors - MedSchedule";
+  }, []);
+
+  useEffect(() => {
     const getDoctors = async () => {
       const doctors = await fetchAllDoctors();
       setSampleDoctors(mapDoctors(doctors));

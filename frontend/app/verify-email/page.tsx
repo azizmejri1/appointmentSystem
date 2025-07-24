@@ -13,6 +13,8 @@ export default function VerifyEmail() {
   const token = searchParams.get("token");
 
   useEffect(() => {
+    document.title = "Email Verification - MedSchedule";
+
     if (!token) {
       setStatus("error");
       setMessage("Invalid verification link. No token provided.");
