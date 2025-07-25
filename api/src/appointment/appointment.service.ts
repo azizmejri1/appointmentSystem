@@ -144,21 +144,46 @@ async create(dto: CreateAppointmentDto): Promise<Appointment> {
   const duration = schedule.appointmentDuration; // in minutes
 
   // 4️⃣ Check for overlapping appointments
-  // Check if any appointment starts within our appointment duration window
+  // New appointment: requestedTime to (requestedTime + duration)
   const appointmentEnd = requestedTime.clone().add(duration, 'minutes');
   
-  const conflicts = await this.appointmentModel.find({
+  // Get all appointments for this doctor on the same day
+  const dayStart = requestedTime.clone().startOf('day');
+  const dayEnd = requestedTime.clone().endOf('day');
+  
+  const existingAppointments = await this.appointmentModel.find({
     doctor: dto.doctor,
     dateTime: {
-      $gte: requestedTime.clone().subtract(duration, 'minutes').toDate(),
-      $lt: appointmentEnd.toDate(),
+      $gte: dayStart.toDate(),
+      $lte: dayEnd.toDate(),
     },
+  });
+
+  // Check for actual overlaps: two appointments overlap if:
+  // - Existing appointment starts before new appointment ends AND
+  // - Existing appointment ends after new appointment starts
+  const conflicts = existingAppointments.filter(appointment => {
+    const existingStart = moment(appointment.dateTime);
+    const existingEnd = existingStart.clone().add(duration, 'minutes');
+    
+    // Check for overlap
+    const overlap = existingStart.isBefore(appointmentEnd) && existingEnd.isAfter(requestedTime);
+    
+    if (overlap) {
+      console.log(`⚠️ Conflict detected:`, {
+        existing: `${existingStart.format('HH:mm')}-${existingEnd.format('HH:mm')}`,
+        requested: `${requestedTime.format('HH:mm')}-${appointmentEnd.format('HH:mm')}`
+      });
+    }
+    
+    return overlap;
   });
 
   if (conflicts.length > 0) {
     const conflictTime = moment(conflicts[0].dateTime).format('HH:mm');
+    const conflictEndTime = moment(conflicts[0].dateTime).add(duration, 'minutes').format('HH:mm');
     throw new BadRequestException(
-      `This time slot conflicts with an existing appointment at ${conflictTime}. Please choose another time.`
+      `This time slot conflicts with an existing appointment from ${conflictTime} to ${conflictEndTime}. Please choose another time.`
     );
   }
 
