@@ -8,6 +8,8 @@ import {
   X,
   Info,
 } from "lucide-react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 import AppointmentBookingModal from "./AppointmentBookingModal";
 
 interface Doctor {
@@ -80,7 +82,7 @@ const DoctorProfileCard: React.FC<DoctorProfileCardProps> = ({
         return;
       }
 
-      const response = await fetch("http://localhost:8080/waiting-list/join", {
+      const response = await fetch(`${API_URL}/waiting-list/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -135,7 +137,7 @@ const DoctorProfileCard: React.FC<DoctorProfileCardProps> = ({
         return;
       }
 
-      const response = await fetch("http://localhost:8080/appointments", {
+      const response = await fetch(`${API_URL}/appointments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -84,24 +84,50 @@ export class NotificationService {
       const timeUntil = this.getTimeUntilAppointment(appointmentTime);
       const message = `Reminder: You have an appointment in ${timeUntil} minutes`;
 
+      console.log(`📝 Creating reminder notification for ${userType}:`, {
+        userId,
+        appointmentId,
+        timeUntil,
+        message
+      });
+
+      // Convert string IDs to ObjectIds
+      const { Types } = require('mongoose');
+      const userObjectId = new Types.ObjectId(userId);
+      // Only convert appointmentId to ObjectId if it's a valid ObjectId format
+      let appointmentObjectId;
+      try {
+        appointmentObjectId = new Types.ObjectId(appointmentId);
+      } catch (error) {
+        // If appointmentId is not a valid ObjectId (like "test-appointment-id"), use it as string
+        appointmentObjectId = appointmentId;
+      }
+
       const notification = new this.notificationModel({
         message,
         time: new Date(),
-        user: userId,
+        user: userObjectId,
         type: 'appointment_reminder',
-        relatedId: appointmentId,
+        relatedId: appointmentObjectId,
         isRead: false,
       });
 
-      await notification.save();
+      console.log('💾 Saving reminder notification to database...');
+      const savedNotification = await notification.save();
+      console.log('✅ Reminder notification saved successfully:', {
+        id: savedNotification._id,
+        userId: savedNotification.user,
+        type: savedNotification.type,
+        message: savedNotification.message
+      });
 
       return {
         success: true,
         message: 'Appointment reminder sent',
-        notification,
+        notification: savedNotification,
       };
     } catch (error) {
-      console.error('Error sending appointment reminder:', error);
+      console.error('❌ Error sending appointment reminder:', error);
       throw error;
     }
   }
@@ -111,14 +137,27 @@ export class NotificationService {
     console.log('🔍 UserID type:', typeof userId);
     
     try {
-      // Convert string userId to ObjectId for proper MongoDB querying
+      // Check for both ObjectId and string formats
       const { Types } = require('mongoose');
-      const userObjectId = new Types.ObjectId(userId);
+      let userObjectId;
       
-      console.log('🔄 Converted to ObjectId:', userObjectId);
+      try {
+        userObjectId = new Types.ObjectId(userId);
+        console.log('🔄 Converted to ObjectId:', userObjectId);
+      } catch (e) {
+        console.log('⚠️ Invalid ObjectId format, using string search only');
+        userObjectId = null;
+      }
+      
+      // Search for both ObjectId and string formats
+      const query = userObjectId 
+        ? { $or: [{ user: userObjectId }, { user: userId }] }
+        : { user: userId };
+      
+      console.log('🔍 Query:', JSON.stringify(query));
       
       const notifications = await this.notificationModel
-        .find({ user: userObjectId })  // Use ObjectId instead of string
+        .find(query)
         .sort({ time: -1 })
         .limit(limit)
         .skip(offset)
@@ -191,15 +230,26 @@ export class NotificationService {
       // Find appointments that are starting within the next 5 minutes
       const upcomingAppointments = await this.appointmentModel
         .find({
-          appointmentDate: {
+          dateTime: {  // Changed from appointmentDate to dateTime
             $gte: now,
             $lte: fiveMinutesFromNow,
           },
-          status: 'confirmed', // Only notify for confirmed appointments
+          // Remove status filter since appointments might not have status set
+          // status: 'confirmed', // Only notify for confirmed appointments
         })
         .populate('doctor')
         .populate('patient')
         .exec();
+
+      console.log(`🔍 Found ${upcomingAppointments.length} appointments between ${now.toISOString()} and ${fiveMinutesFromNow.toISOString()}`);
+      console.log('📅 Upcoming appointments:', upcomingAppointments.map(apt => ({
+        id: apt._id,
+        dateTime: apt.dateTime,
+        doctor: apt.doctor?._id,
+        patient: apt.patient?._id
+      })));
+
+      let notificationsSent = 0;
 
       for (const appointment of upcomingAppointments) {
         // Check if we've already sent a reminder for this appointment
@@ -209,32 +259,55 @@ export class NotificationService {
         });
 
         if (!existingReminder) {
+          console.log('📋 Appointment details:', {
+            id: appointment._id,
+            date: appointment.dateTime,  // Changed from appointmentDate to dateTime
+            doctor: appointment.doctor ? {
+              id: appointment.doctor._id,
+              user: appointment.doctor.user
+            } : 'No doctor',
+            patient: appointment.patient ? {
+              id: appointment.patient._id,
+              user: appointment.patient.user
+            } : 'No patient'
+          });
+
           // Send reminder to doctor
           if (appointment.doctor && appointment.doctor.user) {
+            const doctorUserId = appointment.doctor.user._id || appointment.doctor.user;
+            console.log('🔔 Sending reminder to doctor user ID:', doctorUserId);
             await this.sendAppointmentReminder(
-              appointment.doctor.user,
+              doctorUserId.toString(),
               appointment._id,
-              appointment.appointmentDate,
+              appointment.dateTime,  // Changed from appointmentDate to dateTime
               'doctor'
             );
+            notificationsSent++;
           }
 
           // Send reminder to patient
           if (appointment.patient && appointment.patient.user) {
+            const patientUserId = appointment.patient.user._id || appointment.patient.user;
+            console.log('🔔 Sending reminder to patient user ID:', patientUserId);
             await this.sendAppointmentReminder(
-              appointment.patient.user,
+              patientUserId.toString(),
               appointment._id,
-              appointment.appointmentDate,
+              appointment.dateTime,  // Changed from appointmentDate to dateTime
               'patient'
             );
+            notificationsSent++;
           }
+        } else {
+          console.log('⚠️ Reminder already sent for appointment:', appointment._id);
         }
       }
+
+      console.log(`📊 Reminder check complete: ${notificationsSent} notifications sent`);
 
       return {
         success: true,
         message: `Checked ${upcomingAppointments.length} upcoming appointments`,
-        notificationsSent: upcomingAppointments.length * 2, // Doctor + Patient for each appointment
+        notificationsSent: notificationsSent,
       };
     } catch (error) {
       console.error('Error checking upcoming appointments:', error);

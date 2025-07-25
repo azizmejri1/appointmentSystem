@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import WaitingList from "@/app/patient/components/WaitingList";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
 interface Doctor {
   _id: string;
   firstName: string;
@@ -72,7 +74,9 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
 
   // Generate calendar days for current month
   const generateCalendarDays = () => {
-    const today = new Date();
+    const now = new Date();
+    // Normalize today to start of day for accurate comparison
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
     const firstDay = new Date(currentYear, currentMonth, 1);
@@ -107,7 +111,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
 
       // Fixed URL to match ScheduleCalendar
       const response = await fetch(
-        `http://localhost:8080/schedules?doctorId=${doctor._id}`,
+        `${API_URL}/schedules?doctorId=${doctor._id}`,
         {
           credentials: "include",
         }
@@ -116,7 +120,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
       console.log("📡 Response status:", response.status);
       console.log(
         "📡 Request URL:",
-        `http://localhost:8080/schedules?doctorId=${doctor._id}`
+        `${API_URL}/schedules?doctorId=${doctor._id}`
       );
 
       if (response.ok) {
@@ -371,7 +375,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
   const checkAvailabilityAndPromptWaitingList = async (date: Date) => {
     try {
       const response = await fetch(
-        "http://localhost:8080/appointments/check-availability",
+        `${API_URL}/appointments/check-availability`,
         {
           method: "POST",
           headers: {
@@ -431,7 +435,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
         return;
       }
 
-      const response = await fetch("http://localhost:8080/waiting-list/join", {
+      const response = await fetch(`${API_URL}/waiting-list/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

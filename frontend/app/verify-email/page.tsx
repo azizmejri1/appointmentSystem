@@ -26,8 +26,9 @@ export default function VerifyEmail() {
 
   const verifyEmail = async (verificationToken: string) => {
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
       const response = await fetch(
-        `http://localhost:8080/doctors/verify-email/${verificationToken}`,
+        `${apiUrl}/doctors/verify-email/${verificationToken}`,
         {
           method: "POST",
           headers: {

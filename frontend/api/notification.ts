@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // Create axios instance with credentials
 const api = axios.create({
@@ -28,10 +28,13 @@ export interface NotificationResponse {
 // Get notifications for the current user
 export const getUserNotifications = async (userId: string, limit = 20, offset = 0): Promise<Notification[]> => {
   try {
+    console.log("🌐 API - Fetching notifications:", { userId, limit, offset, apiUrl: API_BASE_URL });
     const response = await api.get(`/notifications/user/${userId}?limit=${limit}&offset=${offset}`);
+    console.log("🌐 API - Response status:", response.status);
+    console.log("🌐 API - Response data:", response.data);
     return response.data || [];
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error('❌ API - Error fetching notifications:', error);
     throw error;
   }
 };
@@ -50,10 +53,12 @@ export const markNotificationAsRead = async (notificationId: string): Promise<No
 // Get unread notification count
 export const getUnreadCount = async (userId: string): Promise<number> => {
   try {
+    console.log("🌐 API - Fetching unread count for userId:", userId);
     const response = await api.get(`/notifications/unread-count/${userId}`);
+    console.log("🌐 API - Unread count response:", response.data);
     return response.data.unreadCount || 0;
   } catch (error) {
-    console.error('Error fetching unread count:', error);
+    console.error('❌ API - Error fetching unread count:', error);
     return 0;
   }
 };

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:8080/waiting-list';
+const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/waiting-list`;
 
 export async function joinWaitingList(doctorId: string, patientId: string) {
   try {

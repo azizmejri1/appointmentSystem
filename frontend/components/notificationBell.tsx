@@ -34,7 +34,10 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   }, [isOpen, userId]);
 
   const fetchNotifications = async () => {
-    if (!userId) return;
+    if (!userId) {
+      console.log("⚠️ NotificationBell - No userId provided, skipping fetch");
+      return;
+    }
 
     console.log(
       "🔔 NotificationBell - Fetching notifications for userId:",
@@ -45,11 +48,15 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       const notificationData = await getUserNotifications(userId, 10, 0);
       console.log(
         "📩 NotificationBell - Received notifications:",
-        notificationData.length
+        notificationData.length,
+        notificationData
       );
       setNotifications(notificationData);
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+      console.error(
+        "❌ NotificationBell - Error fetching notifications:",
+        error
+      );
     } finally {
       setLoading(false);
     }

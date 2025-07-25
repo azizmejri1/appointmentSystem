@@ -6,23 +6,50 @@ export class EmailService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
+    // Validate required environment variables
+    if (!process.env.SMTP_HOST) {
+      throw new Error('SMTP_HOST environment variable is required');
+    }
+    if (!process.env.SMTP_USER) {
+      throw new Error('SMTP_USER environment variable is required');
+    }
+    if (!process.env.SMTP_PASSWORD) {
+      throw new Error('SMTP_PASSWORD environment variable is required');
+    }
+
     this.transporter = nodemailer.createTransport({
-      host: 'smtp.zoho.com',
-      port: 587,
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
       secure: false, // true for 465, false for other ports
       auth: {
-        user: 'medschedule@zohomail.com',
-        pass: 'Aziz@2003', // Use app password from environment
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
       },
       tls: {
         rejectUnauthorized: false,
       },
-      debug: true, // Enable debug for troubleshooting
-      logger: true, // Enable logging
+      debug: process.env.NODE_ENV === 'development', // Enable debug in development
+      logger: process.env.NODE_ENV === 'development', // Enable logging in development
     });
 
     // Test connection on startup
     this.testConnection();
+  }
+
+  // Helper method to get the from email address
+  private getFromEmail(): string {
+    if (!process.env.EMAIL_FROM) {
+      throw new Error('EMAIL_FROM environment variable is required');
+    }
+    return `"${process.env.EMAIL_FROM_NAME || 'MedSchedule Team'}" <${process.env.EMAIL_FROM}>`;
+  }
+
+  // Helper method to get reply-to email address
+  private getReplyToEmail(): string {
+    if (!process.env.EMAIL_FROM) {
+      throw new Error('EMAIL_FROM environment variable is required');
+    }
+    return process.env.EMAIL_FROM;
   }
 
   // Generate a 6-digit verification code
@@ -41,10 +68,10 @@ export class EmailService {
 
   async sendVerificationEmail(email: string, verificationCode: string, doctorName: string): Promise<void> {
     const mailOptions = {
-      from: '"MedSchedule Team" <medschedule@zohomail.com>',
+      from: this.getFromEmail(),
       to: email,
       subject: '🏥 Your MedSchedule Verification Code',
-      replyTo: 'medschedule@zohomail.com',
+      replyTo: this.getReplyToEmail(),
       text: `
 Hello Dr. ${doctorName},
 
@@ -120,10 +147,10 @@ The MedSchedule Team
 
   async sendPatientVerificationEmail(email: string, verificationCode: string, patientName: string): Promise<void> {
     const mailOptions = {
-      from: '"MedSchedule Team" <medschedule@zohomail.com>',
+      from: this.getFromEmail(),
       to: email,
       subject: '🏥 Your MedSchedule Verification Code',
-      replyTo: 'medschedule@zohomail.com',
+      replyTo: this.getReplyToEmail(),
       text: `
 Hello ${patientName},
 
@@ -199,7 +226,7 @@ The MedSchedule Team
 
   async sendWelcomeEmail(email: string, doctorName: string): Promise<void> {
     const mailOptions = {
-      from: 'medschedule@zohomail.com',
+      from: this.getFromEmail(),
       to: email,
       subject: 'Welcome to MedSchedule! 🎉',
       html: `
@@ -252,7 +279,7 @@ The MedSchedule Team
             </div>
             
             <div style="text-align: center;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/doctor/dashboard" class="button">Access Your Dashboard</a>
+              <a href="${process.env.FRONTEND_URL}/doctor/dashboard" class="button">Access Your Dashboard</a>
             </div>
             
             <p>If you have any questions or need assistance, feel free to contact our support team.</p>
@@ -279,10 +306,10 @@ The MedSchedule Team
   // Test method to send a simple email
   async sendTestEmail(email: string): Promise<void> {
     const mailOptions = {
-      from: '"MedSchedule Team" <medschedule@zohomail.com>',
+      from: this.getFromEmail(),
       to: email,
       subject: '✅ MedSchedule Test Email',
-      replyTo: 'medschedule@zohomail.com',
+      replyTo: this.getReplyToEmail(),
       text: `
 Hello!
 

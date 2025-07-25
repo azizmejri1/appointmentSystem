@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8080/records";
+const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/records`;
 
 export interface Consultation {
   _id?: string;

@@ -31,7 +31,7 @@ import Navbar from "@/components/navbar";
 import SignIn from "@/components/signIn";
 import SignUp from "@/components/signUp";
 
-const API_URL = "http://localhost:8080";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 interface PatientProfile {
   _id: string;

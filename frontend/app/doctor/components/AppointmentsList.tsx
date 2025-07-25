@@ -12,6 +12,8 @@ import {
   Edit,
 } from "lucide-react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
 interface User {
   _id: string;
   firstName: string;
@@ -78,7 +80,7 @@ const AppointmentsList: React.FC = () => {
       }
 
       const response = await fetch(
-        `http://localhost:8080/appointments?doctorId=${doctorId}`,
+        `${API_URL}/appointments?doctorId=${doctorId}`,
         {
           credentials: "include",
           headers: {
@@ -150,19 +152,16 @@ const AppointmentsList: React.FC = () => {
       setUpdatingStatus(appointmentId);
       setDropdownOpen(null);
 
-      const response = await fetch(
-        `http://localhost:8080/appointments/${appointmentId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            status: newStatus,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/appointments/${appointmentId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          status: newStatus,
+        }),
+      });
 
       if (response.ok) {
         // Update the appointment in the local state

@@ -143,27 +143,41 @@ async create(dto: CreateAppointmentDto): Promise<Appointment> {
 
   const duration = schedule.appointmentDuration; // in minutes
 
-  // 4️⃣ Check nearby appointments to avoid overlaps
-  const windowStart = requestedTime.clone().subtract(duration, 'minutes');
-  const windowEnd = requestedTime.clone().add(duration, 'minutes');
-
-  const conflict = await this.appointmentModel.findOne({
+  // 4️⃣ Check for overlapping appointments
+  // Check if any appointment starts within our appointment duration window
+  const appointmentEnd = requestedTime.clone().add(duration, 'minutes');
+  
+  const conflicts = await this.appointmentModel.find({
     doctor: dto.doctor,
     dateTime: {
-      $gte: windowStart.toDate(),
-      $lt: windowEnd.toDate(),
+      $gte: requestedTime.clone().subtract(duration, 'minutes').toDate(),
+      $lt: appointmentEnd.toDate(),
     },
   });
 
-  if (conflict) {
+  if (conflicts.length > 0) {
+    const conflictTime = moment(conflicts[0].dateTime).format('HH:mm');
     throw new BadRequestException(
-      'This time slot or a nearby slot is already booked. Please choose another time.'
+      `This time slot conflicts with an existing appointment at ${conflictTime}. Please choose another time.`
     );
   }
 
   // 5️⃣ Create appointment
-  const appointment = new this.appointmentModel(dto);
+  const appointmentData = {
+    ...dto,
+    status: dto.status || 'confirmed', // Set default status
+  };
+  
+  const appointment = new this.appointmentModel(appointmentData);
   const savedAppointment = await appointment.save();
+
+  console.log('✅ Appointment created:', {
+    id: savedAppointment._id,
+    dateTime: savedAppointment.dateTime,
+    status: savedAppointment.status,
+    doctor: savedAppointment.doctor,
+    patient: savedAppointment.patient
+  });
 
   // 🔔 Notify doctor of new appointment
   try {
@@ -182,8 +196,8 @@ async create(dto: CreateAppointmentDto): Promise<Appointment> {
   const appointmentStartTime = requestedTime.format('HH:mm');
   const appointmentEndTime = requestedTime.clone().add(duration, 'minutes').format('HH:mm');
 
-  // Find the availability slot for the day and add the pause
-  const availabilityIndex = schedule.availability.findIndex(slot => slot.day === dayOfWeek);
+  // Find the availability slot for the day and add the pause (use fullDateString, not dayOfWeek)
+  const availabilityIndex = schedule.availability.findIndex(slot => slot.day === fullDateString);
   if (availabilityIndex !== -1) {
     if (!schedule.availability[availabilityIndex].pauses) {
       schedule.availability[availabilityIndex].pauses = [];
@@ -194,6 +208,8 @@ async create(dto: CreateAppointmentDto): Promise<Appointment> {
       end: appointmentEndTime
     });
 
+    console.log(`✅ Added pause ${appointmentStartTime}-${appointmentEndTime} to ${fullDateString}`);
+    
     // Save the updated schedule
     await schedule.save();
   }
@@ -210,6 +226,37 @@ async create(dto: CreateAppointmentDto): Promise<Appointment> {
   }
 
   async delete(id: string): Promise<{ message: string }> {
+    // First get the appointment to remove its pause from schedule
+    const appointment = await this.appointmentModel.findById(id);
+    if (!appointment) throw new NotFoundException('Appointment not found');
+
+    // Remove the pause from the doctor's schedule
+    try {
+      const requestedTime = moment(appointment.dateTime);
+      const fullDateString = requestedTime.format('dddd MMMM D');
+      
+      const schedule = await this.scheduleModel.findOne({ doctorId: appointment.doctor });
+      if (schedule) {
+        const appointmentStartTime = requestedTime.format('HH:mm');
+        const appointmentEndTime = requestedTime.clone().add(schedule.appointmentDuration, 'minutes').format('HH:mm');
+        
+        const availabilityIndex = schedule.availability.findIndex(slot => slot.day === fullDateString);
+        if (availabilityIndex !== -1 && schedule.availability[availabilityIndex].pauses) {
+          // Remove the pause that matches this appointment
+          schedule.availability[availabilityIndex].pauses = schedule.availability[availabilityIndex].pauses.filter(
+            pause => !(pause.start === appointmentStartTime && pause.end === appointmentEndTime)
+          );
+          
+          console.log(`✅ Removed pause ${appointmentStartTime}-${appointmentEndTime} from ${fullDateString}`);
+          await schedule.save();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to remove pause from schedule:', error);
+      // Don't fail the deletion if pause removal fails
+    }
+
+    // Delete the appointment
     const res = await this.appointmentModel.findByIdAndDelete(id);
     if (!res) throw new NotFoundException('Appointment not found');
     return { message: 'Appointment deleted' };

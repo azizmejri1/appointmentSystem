@@ -37,10 +37,11 @@ const EmailVerificationPopup: React.FC<EmailVerificationPopupProps> = ({
     setError("");
 
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
       const endpoint =
         userType === "doctor"
-          ? `http://localhost:8080/doctors/${userId}/verify-email-code`
-          : `http://localhost:8080/patients/${userId}/verify-email-code`;
+          ? `${apiUrl}/doctors/${userId}/verify-email-code`
+          : `${apiUrl}/patients/${userId}/verify-email-code`;
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -74,10 +75,11 @@ const EmailVerificationPopup: React.FC<EmailVerificationPopupProps> = ({
     setError("");
 
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
       const endpoint =
         userType === "doctor"
-          ? `http://localhost:8080/doctors/${userId}/resend-verification`
-          : `http://localhost:8080/patients/${userId}/resend-verification`;
+          ? `${apiUrl}/doctors/${userId}/resend-verification`
+          : `${apiUrl}/patients/${userId}/resend-verification`;
 
       const response = await fetch(endpoint, {
         method: "POST",

@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
 // Type definitions
 interface Doctor {
   id: string | null;
@@ -202,7 +204,7 @@ const ScheduleCalendar: React.FC = () => {
     console.log("Submitting payload:", payload);
 
     try {
-      await axios.post("http://localhost:8080/schedules", payload, {
+      await axios.post(`${API_URL}/schedules`, payload, {
         headers: { "Content-Type": "application/json" },
         withCredentials: true,
       });

@@ -81,4 +81,49 @@ export class NotificationController {
       };
     }
   }
+
+  // Test endpoint to manually check and send appointment reminders
+  @Post('test-reminders')
+  async testReminders() {
+    try {
+      console.log('🧪 Manually triggering appointment reminder check...');
+      const result = await this.notificationService.checkAndNotifyUpcomingAppointments();
+      return {
+        success: true,
+        message: 'Manual reminder check completed',
+        result: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Test endpoint to create a reminder for a specific user
+  @Post('test-user-reminder')
+  async testUserReminder(@Body() body: { userId: string; appointmentId?: string }) {
+    try {
+      const futureTime = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
+      
+      const result = await this.notificationService.sendAppointmentReminder(
+        body.userId,
+        body.appointmentId || 'test-appointment-id',
+        futureTime,
+        'patient'
+      );
+      
+      return {
+        success: true,
+        message: 'Test reminder created',
+        result: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }

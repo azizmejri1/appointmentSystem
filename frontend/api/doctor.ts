@@ -1,8 +1,8 @@
 import { Doctor } from "@/interface/doctor";
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8080/doctors";
-const PATIENTS_URL = "http://localhost:8080/patients";
+const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/doctors`;
+const PATIENTS_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/patients`;
 
 export async function fetchSpecialities(): Promise<string[]> {
   try {

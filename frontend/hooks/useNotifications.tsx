@@ -44,16 +44,24 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   const refreshUnreadCount = async () => {
     if (!user?._id) {
+      console.log(
+        "⚠️ useNotifications - No user._id available, skipping count fetch"
+      );
       setUnreadCount(0);
       return;
     }
 
     try {
+      console.log(
+        "🔔 useNotifications - Fetching unread count for user:",
+        user._id
+      );
       const count = await getUnreadCount(user._id);
 
       console.log("🔔 Notification count check:", {
         newCount: count,
         currentUnreadCount: unreadCount,
+        userId: user._id,
       });
 
       // Play sound ONLY when count increases (new notifications arrived)
@@ -68,7 +76,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       // Update counts
       setUnreadCount(count);
     } catch (error) {
-      console.error("Error fetching unread count:", error);
+      console.error(
+        "❌ useNotifications - Error fetching unread count:",
+        error
+      );
     }
   };
 

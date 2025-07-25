@@ -73,7 +73,7 @@ export const useCurrentUser = () => {
         setUserType(storedUserType as 'doctor' | 'patient');
 
         // Try to fetch full profile data from API
-        const baseUrl = 'http://localhost:8080';
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
         const endpoint = storedUserType === 'doctor' ? '/doctors' : '/patients';
         
         try {
