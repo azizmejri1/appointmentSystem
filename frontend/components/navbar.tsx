@@ -44,13 +44,16 @@ export default function Navbar({
       <div className="container flex justify-between">
         {/* Logo */}
         <div className="logo m-4">
-          <Image
-            src="/med.png"
-            alt="AppointMed Logo"
-            width={150}
-            height={50}
-            priority={true}
-          />
+          <Link href="/">
+            <Image
+              src="/med.png"
+              alt="AppointMed Logo"
+              width={150}
+              height={50}
+              priority={true}
+              className="cursor-pointer"
+            />
+          </Link>
         </div>
 
         {/* Menu */}

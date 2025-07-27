@@ -10,6 +10,8 @@ import {
   AlertCircle,
   Info,
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import WaitingList from "@/app/patient/components/WaitingList";
 
@@ -64,10 +66,11 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
   const doctorId = doctor._id;
   const patientId = localStorage.getItem("profileId") || "";
@@ -77,10 +80,10 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
     const now = new Date();
     // Normalize today to start of day for accurate comparison
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    const firstDay = new Date(currentYear, currentMonth, 1);
-    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const currentMonthDate = currentMonth.getMonth();
+    const currentYear = currentMonth.getFullYear();
+    const firstDay = new Date(currentYear, currentMonthDate, 1);
+    const lastDay = new Date(currentYear, currentMonthDate + 1, 0);
     const days = [];
 
     // Add empty cells for days before month starts
@@ -90,7 +93,8 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
 
     // Add all days of the month
     for (let day = 1; day <= lastDay.getDate(); day++) {
-      const date = new Date(currentYear, currentMonth, day);
+      const date = new Date(currentYear, currentMonthDate, day);
+      // Only allow future dates or today
       if (date >= today) {
         days.push(date);
       } else {
@@ -99,6 +103,55 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
     }
 
     return days;
+  };
+
+  // Navigate to previous month
+  const goToPreviousMonth = () => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(currentMonth.getMonth() - 1);
+    
+    // Don't allow going to past months
+    const today = new Date();
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    if (newMonth >= currentMonthStart) {
+      setCurrentMonth(newMonth);
+      setSelectedDate(null); // Clear selected date when changing months
+      setSelectedTime(null);
+    }
+  };
+
+  // Navigate to next month
+  const goToNextMonth = () => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(currentMonth.getMonth() + 1);
+    
+    // Allow up to 6 months in the future
+    const maxMonth = new Date();
+    maxMonth.setMonth(maxMonth.getMonth() + 6);
+    
+    if (newMonth <= maxMonth) {
+      setCurrentMonth(newMonth);
+      setSelectedDate(null); // Clear selected date when changing months
+      setSelectedTime(null);
+    }
+  };
+
+  // Check if navigation buttons should be disabled
+  const isPreviousDisabled = () => {
+    const today = new Date();
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const prevMonth = new Date(currentMonth);
+    prevMonth.setMonth(currentMonth.getMonth() - 1);
+    return prevMonth < currentMonthStart;
+  };
+
+  const isNextDisabled = () => {
+    const maxMonth = new Date();
+    maxMonth.setMonth(maxMonth.getMonth() + 6);
+    const nextMonth = new Date(currentMonth);
+    nextMonth.setMonth(currentMonth.getMonth() + 1);
+    return nextMonth > maxMonth;
   };
 
   // Fetch doctor's schedule
@@ -124,22 +177,22 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
       );
 
       if (response.ok) {
-        const schedules = await response.json();
-        console.log("📋 Raw schedules response:", schedules);
-        console.log("📋 Array length:", schedules.length);
+        const schedulesData = await response.json();
+        console.log("📋 Raw schedules response:", schedulesData);
+        console.log("📋 Array length:", Array.isArray(schedulesData) ? schedulesData.length : "Not an array");
 
-        if (Array.isArray(schedules) && schedules.length > 0) {
-          console.log("✅ Setting schedule from array:", schedules[0]);
-          setSchedule(schedules[0]);
-        } else if (schedules && !Array.isArray(schedules)) {
-          console.log("✅ Setting schedule from object:", schedules);
-          setSchedule(schedules);
+        if (Array.isArray(schedulesData) && schedulesData.length > 0) {
+          console.log("✅ Setting schedules from array:", schedulesData);
+          setSchedules(schedulesData);
+        } else if (schedulesData && !Array.isArray(schedulesData)) {
+          console.log("✅ Setting schedule from single object:", schedulesData);
+          setSchedules([schedulesData]);
         } else {
           console.log("❌ No valid schedule data found - Empty array or null");
           console.log(
             "💡 This means the doctor hasn't created a schedule yet!"
           );
-          setSchedule(null);
+          setSchedules([]);
           setError({
             type: "warning",
             title: "No Schedule Available",
@@ -149,7 +202,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
       } else {
         const errorText = await response.text();
         console.log("❌ Response not ok:", errorText);
-        setSchedule(null);
+        setSchedules([]);
 
         if (response.status === 404) {
           setError({
@@ -176,7 +229,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
       }
     } catch (error) {
       console.error("❌ Error fetching schedule:", error);
-      setSchedule(null);
+      setSchedules([]);
       setError({
         type: "error",
         title: "Network Error",
@@ -188,33 +241,64 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
     }
   };
 
-  // Check if a date is available based on doctor's schedule
-  const isDateAvailable = (date: Date) => {
-    if (!schedule) return false;
+  // Helper function to find schedule for a specific date
+  const findScheduleForDate = (date: Date): Schedule | null => {
+    if (schedules.length === 0) return null;
 
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-
-    return schedule.availability.some((slot) => {
-      const slotDay = slot.day.toLowerCase().trim();
-      const targetDay = dayName.toLowerCase().trim();
-
-      return (
-        slotDay === targetDay ||
-        slotDay.includes(targetDay) ||
-        slotDay.startsWith(targetDay)
-      );
+    const dateString = date.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
     });
+    const fullDateString = `${dayName} ${dateString}`;
+
+    console.log("🔍 Looking for schedule for:", fullDateString);
+
+    // Search through all schedules to find one that has availability for this date
+    for (const schedule of schedules) {
+      if (schedule.availability) {
+        const hasAvailability = schedule.availability.some((slot) => {
+          const slotDay = slot.day.toLowerCase().trim();
+          const targetDay = dayName.toLowerCase().trim();
+          const targetFullDate = fullDateString.toLowerCase().trim();
+
+          // Use exact matching only to prevent false positives
+          const exactMatch = slotDay === targetDay;
+          const fullDateMatch = slotDay === targetFullDate;
+          
+          // Only allow "starts with" for full date strings (e.g., "Monday January 15")
+          const startsWithDateMatch = slotDay.startsWith(targetDay) && slotDay.includes(dateString.toLowerCase());
+
+          return exactMatch || fullDateMatch || startsWithDateMatch;
+        });
+
+        if (hasAvailability) {
+          console.log("✅ Found schedule:", schedule._id, "for date:", fullDateString);
+          return schedule;
+        }
+      }
+    }
+
+    console.log("❌ No schedule found for date:", fullDateString);
+    return null;
+  };
+
+  // Check if a date is available based on doctor's schedules
+  const isDateAvailable = (date: Date) => {
+    return findScheduleForDate(date) !== null;
   };
 
   // Generate time slots for selected date - ENHANCED DEBUGGING
   const generateTimeSlots = (date: Date) => {
+    const schedule = findScheduleForDate(date);
+    
     if (!schedule) {
-      console.log("❌ No schedule available");
+      console.log("❌ No schedule available for this date");
       return [];
     }
 
     console.log("🗓️ Generating slots for date:", date);
-    console.log("📅 Full schedule object:", JSON.stringify(schedule, null, 2));
+    console.log("📅 Using schedule:", schedule._id);
     console.log("📅 Available schedule days:", schedule.availability);
 
     // Try multiple day matching strategies to handle ScheduleCalendar format
@@ -239,24 +323,24 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
       const slotDay = slot.day.toLowerCase().trim();
       const targetDay = dayName.toLowerCase().trim();
 
-      // Multiple matching strategies
+      // Use strict matching to prevent false positives
       const exactMatch = slotDay === targetDay;
-      const containsMatch = slotDay.includes(targetDay);
-      const startsWithMatch = slotDay.startsWith(targetDay);
 
       // Also try matching with the full date string
       const fullDateTarget = `${dayName} ${dateString}`.toLowerCase().trim();
       const fullDateMatch = slotDay === fullDateTarget;
+      
+      // Only allow "starts with" for full date strings (e.g., "Monday January 15")
+      const startsWithDateMatch = slotDay.startsWith(targetDay) && slotDay.includes(dateString.toLowerCase());
 
       console.log(`🔍 Comparing "${slotDay}" with "${targetDay}":`, {
         exactMatch,
-        containsMatch,
-        startsWithMatch,
         fullDateMatch,
+        startsWithDateMatch,
         fullDateTarget,
       });
 
-      return exactMatch || containsMatch || startsWithMatch || fullDateMatch;
+      return exactMatch || fullDateMatch || startsWithDateMatch;
     });
 
     console.log("📋 Found day schedule:", daySchedule);
@@ -354,12 +438,12 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
   }, [isOpen, doctor._id]);
 
   useEffect(() => {
-    if (selectedDate && schedule) {
+    if (selectedDate && schedules.length > 0) {
       const slots = generateTimeSlots(selectedDate);
       setAvailableSlots(slots);
       setSelectedTime(null);
     }
-  }, [selectedDate, schedule]);
+  }, [selectedDate, schedules]);
 
   const handleDateSelect = async (date: Date) => {
     setSelectedDate(date);
@@ -374,6 +458,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
   // Check availability and prompt for waiting list if needed
   const checkAvailabilityAndPromptWaitingList = async (date: Date) => {
     try {
+      const schedule = findScheduleForDate(date);
       const response = await fetch(
         `${API_URL}/appointments/check-availability`,
         {
@@ -480,7 +565,8 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
   };
 
   const handleBookAppointment = () => {
-    if (selectedDate && selectedTime && schedule) {
+    if (selectedDate && selectedTime && schedules.length > 0) {
+      const schedule = findScheduleForDate(selectedDate);
       const [hours, minutes] = selectedTime.split(":").map(Number);
       const appointmentDateTime = new Date(selectedDate);
       appointmentDateTime.setHours(hours, minutes, 0, 0);
@@ -488,7 +574,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
       onBookAppointment({
         doctorId: doctor._id,
         dateTime: appointmentDateTime,
-        duration: schedule.appointmentDuration,
+        duration: schedule?.appointmentDuration || 30,
       });
 
       onClose();
@@ -686,11 +772,16 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
             </h3>
 
             {/* Show available days info */}
-            {schedule && (
+            {schedules.length > 0 && (
               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-800">
                   <strong>Available days:</strong>{" "}
-                  {schedule.availability.map((slot) => slot.day).join(", ")}
+                  {schedules
+                    .flatMap((schedule) => 
+                      schedule.availability.map((slot: any) => slot.day)
+                    )
+                    .filter((day, index, arr) => arr.indexOf(day) === index) // Remove duplicates
+                    .join(", ")}
                 </p>
               </div>
             )}
@@ -709,12 +800,43 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
                 <div className="w-4 h-4 border border-dashed border-orange-300 rounded"></div>
                 <span className="text-gray-600">Join waiting list</span>
               </div>
+              <div className="flex items-center gap-2 text-gray-500">
+                <span>• Navigate up to 6 months ahead</span>
+              </div>
             </div>
 
             <div className="mb-4">
-              <h4 className="text-center font-medium text-gray-900 mb-2">
-                {monthNames[today.getMonth()]} {today.getFullYear()}
-              </h4>
+              <div className="flex items-center justify-between mb-2">
+                <button
+                  onClick={goToPreviousMonth}
+                  disabled={isPreviousDisabled()}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isPreviousDisabled()
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                  title="Previous month"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                
+                <h4 className="text-center font-medium text-gray-900">
+                  {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                </h4>
+                
+                <button
+                  onClick={goToNextMonth}
+                  disabled={isNextDisabled()}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isNextDisabled()
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                  title="Next month"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-7 gap-1 mb-2">
@@ -812,9 +934,9 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
         {/* Footer */}
         <div className="p-6 border-t border-gray-200 flex justify-between items-center">
           <div className="text-sm text-gray-600">
-            {selectedDate && selectedTime && schedule && (
+            {selectedDate && selectedTime && schedules.length > 0 && (
               <span>
-                Appointment duration: {schedule.appointmentDuration} minutes
+                Appointment duration: {findScheduleForDate(selectedDate)?.appointmentDuration || 30} minutes
               </span>
             )}
           </div>

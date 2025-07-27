@@ -12,6 +12,7 @@ export default function SignUp({
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showVerificationPopup, setShowVerificationPopup] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [signupResponse, setSignupResponse] = useState<{
     email: string;
     userType: "doctor" | "patient";
@@ -30,6 +31,7 @@ export default function SignUp({
 
   const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     console.log("Sign Up:", signUpData);
 
     const { role, ...rest } = signUpData;
@@ -51,6 +53,7 @@ export default function SignUp({
       endpoint = "/doctors/signup";
     } else {
       alert("Please select a role");
+      setIsLoading(false);
       return;
     }
 
@@ -82,6 +85,8 @@ export default function SignUp({
     } catch (error) {
       console.error("❌ Sign up error:", error);
       alert("Network error. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -326,10 +331,20 @@ export default function SignUp({
             {/* Submit */}
             <button
               type="submit"
-              className="w-full text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+              disabled={isLoading}
+              className={`w-full text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transform transition-all duration-200 flex items-center justify-center gap-2 ${
+                isLoading ? "opacity-75 cursor-not-allowed" : "hover:scale-105"
+              }`}
               style={{ backgroundColor: "#0d78d3" }}
             >
-              Create Account
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  Creating Account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </button>
 
             {/* Switch */}

@@ -8,9 +8,12 @@ import {
   ChevronRight,
   LucideIcon,
   Bell,
+  LogOut,
 } from "lucide-react";
 import { User } from "@/interface/doctor";
 import { useNotifications } from "../../../hooks/useNotifications";
+import { logout } from "@/api/profile";
+import { useRouter } from "next/navigation";
 
 interface MenuItem {
   id: string;
@@ -28,6 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick }) => {
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const { unreadCount } = useNotifications();
+  const router = useRouter();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -85,6 +89,17 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick }) => {
 
   const handleItemClick = (itemId: string): void => {
     onItemClick(itemId);
+  };
+
+  const handleLogout = async (): Promise<void> => {
+    try {
+      await logout();
+      router.push("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Force redirect even if logout API fails
+      router.push("/");
+    }
   };
 
   const handleMouseEnter = (
@@ -184,22 +199,18 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick }) => {
         </ul>
       </nav>
 
-      {/* Footer Status */}
+      {/* Logout Button */}
       <div className="p-4 border-t border-gray-200">
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: "rgba(13, 120, 211, 0.1)" }}
-            >
-              <div className="w-3 h-3 rounded-full bg-green-400"></div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-gray-500">Status</p>
-              <p className="text-sm font-medium text-gray-700">Online</p>
-            </div>
-          </div>
-        </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:text-red-600 hover:bg-red-50 transition-all duration-200 group"
+        >
+          <LogOut
+            size={20}
+            className="transition-transform duration-200 group-hover:scale-105"
+          />
+          <span className="text-sm font-medium">Logout</span>
+        </button>
       </div>
     </div>
   );

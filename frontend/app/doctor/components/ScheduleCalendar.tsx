@@ -9,6 +9,9 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
+  Edit,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 import axios from "axios";
 
@@ -55,16 +58,127 @@ const ScheduleCalendar: React.FC = () => {
   const [schedules, setSchedules] = useState<Schedules>({});
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [profileId, setProfileId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState<boolean>(false);
+  const [existingSchedule, setExistingSchedule] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
   // Handle client-side hydration
   useEffect(() => {
     setIsClient(true);
     setProfileId(localStorage.getItem("profileId"));
   }, []);
+
+  // Load existing schedules when component mounts or week changes
+  useEffect(() => {
+    if (isClient && profileId) {
+      loadExistingSchedules();
+    }
+  }, [isClient, profileId, currentWeek]);
+
+  const loadExistingSchedules = async (): Promise<void> => {
+    if (!profileId) return;
+
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await axios.get(
+        `${API_URL}/schedules?doctorId=${profileId}`,
+        {
+          withCredentials: true,
+        }
+      );
+
+      const existingSchedules = response.data;
+      console.log("Loaded schedules:", existingSchedules);
+
+      if (existingSchedules.length > 0) {
+        // Find schedule for current week
+        const currentSchedule = findScheduleForWeek(
+          existingSchedules,
+          weekDates
+        );
+        if (currentSchedule) {
+          setExistingSchedule(currentSchedule);
+          setIsEditMode(true);
+          setAppointmentDuration(currentSchedule.appointmentDuration || 30);
+          loadScheduleIntoState(currentSchedule);
+        } else {
+          // No schedule for this week, reset to create mode
+          setExistingSchedule(null);
+          setIsEditMode(false);
+          setSchedules({});
+        }
+      } else {
+        // No schedules exist, start in create mode
+        setExistingSchedule(null);
+        setIsEditMode(false);
+        setSchedules({});
+      }
+    } catch (error) {
+      console.error("Error loading schedules:", error);
+      setErrorMessage("Error loading existing schedules");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const findScheduleForWeek = (
+    schedules: any[],
+    weekDates: Date[]
+  ): any | null => {
+    // Check if any schedule has availability for days in the current week
+    for (const schedule of schedules) {
+      if (schedule.availability) {
+        for (const avail of schedule.availability) {
+          // Check if any availability day matches current week
+          const availDay = avail.day;
+          for (let i = 0; i < weekDates.length; i++) {
+            const date = weekDates[i];
+            const dayName = daysOfWeek[i];
+            const expectedFormat = `${dayName} ${date.toLocaleDateString(
+              "en-US",
+              {
+                month: "long",
+                day: "numeric",
+              }
+            )}`;
+
+            if (availDay === expectedFormat) {
+              return schedule;
+            }
+          }
+        }
+      }
+    }
+    return null;
+  };
+
+  const loadScheduleIntoState = (schedule: any): void => {
+    const newSchedules: Schedules = {};
+
+    if (schedule.availability) {
+      schedule.availability.forEach((avail: any) => {
+        // Extract day name from formatted day string
+        const dayParts = avail.day.split(" ");
+        const dayName = dayParts[0] as DayOfWeek;
+
+        if (daysOfWeek.includes(dayName)) {
+          newSchedules[dayName] = {
+            startTime: avail.startTime,
+            endTime: avail.endTime,
+            pauses: avail.pauses || [],
+          };
+        }
+      });
+    }
+
+    setSchedules(newSchedules);
+  };
 
   const currentDoctor: Doctor = { id: profileId };
 
@@ -204,16 +318,66 @@ const ScheduleCalendar: React.FC = () => {
     console.log("Submitting payload:", payload);
 
     try {
-      await axios.post(`${API_URL}/schedules`, payload, {
-        headers: { "Content-Type": "application/json" },
+      if (isEditMode && existingSchedule) {
+        // Update existing schedule
+        await axios.put(
+          `${API_URL}/schedules/${existingSchedule._id}`,
+          payload,
+          {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+          }
+        );
+        setSuccessMessage("Schedule updated successfully!");
+      } else {
+        // Create new schedule
+        await axios.post(`${API_URL}/schedules`, payload, {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true,
+        });
+        setSuccessMessage("Schedule created successfully!");
+        setIsEditMode(true);
+      }
+
+      // Reload schedules to get updated data
+      await loadExistingSchedules();
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error) {
+      console.error("Error saving schedule:", error);
+      setErrorMessage(
+        isEditMode
+          ? "Error updating schedule. Please try again."
+          : "Error creating schedule. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteSchedule = async (): Promise<void> => {
+    if (
+      !existingSchedule ||
+      !window.confirm("Are you sure you want to delete this schedule?")
+    ) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      await axios.delete(`${API_URL}/schedules/${existingSchedule._id}`, {
         withCredentials: true,
       });
 
-      setSuccessMessage("Schedule created successfully!");
+      setSuccessMessage("Schedule deleted successfully!");
+      setExistingSchedule(null);
+      setIsEditMode(false);
       setSchedules({});
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
-      setErrorMessage("Error creating schedule. Please try again.");
+      console.error("Error deleting schedule:", error);
+      setErrorMessage("Error deleting schedule. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -232,9 +396,25 @@ const ScheduleCalendar: React.FC = () => {
     <div className="w-full max-w-6xl mx-auto p-6">
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-6">
         <div className="px-6 py-4 bg-blue-600">
-          <div className="flex items-center space-x-2">
-            <Calendar className="w-5 h-5 text-white" />
-            <h2 className="text-white font-semibold text-lg">My Schedule</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-5 h-5 text-white" />
+              <h2 className="text-white font-semibold text-lg">
+                {isEditMode ? "Edit Schedule" : "Create Schedule"}
+              </h2>
+              {isLoading && (
+                <Loader2 className="w-4 h-4 text-white animate-spin" />
+              )}
+            </div>
+
+            {isEditMode && (
+              <div className="flex items-center space-x-2">
+                <span className="text-white/80 text-sm">
+                  Editing existing schedule
+                </span>
+                <Edit className="w-4 h-4 text-white" />
+              </div>
+            )}
           </div>
         </div>
 
@@ -256,6 +436,13 @@ const ScheduleCalendar: React.FC = () => {
               />
             </div>
           </div>
+
+          {isLoading && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center space-x-2 text-blue-800 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Loading schedules...</span>
+            </div>
+          )}
 
           {successMessage && (
             <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
@@ -401,14 +588,47 @@ const ScheduleCalendar: React.FC = () => {
             })}
           </div>
 
-          <div className="flex justify-center mt-6">
+          <div className="flex justify-center gap-4 mt-6">
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || !isClient || !currentDoctor.id}
-              className="text-white font-semibold py-3 px-8 rounded-lg shadow-md bg-blue-600 hover:shadow-lg disabled:opacity-50"
+              disabled={
+                isSubmitting || isLoading || !isClient || !currentDoctor.id
+              }
+              className="text-white font-semibold py-3 px-8 rounded-lg shadow-md bg-blue-600 hover:shadow-lg disabled:opacity-50 flex items-center gap-2"
             >
-              <Save className="w-4 h-4 inline" />{" "}
-              {isSubmitting ? "Creating..." : "Create Schedule"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {isEditMode ? "Updating..." : "Creating..."}
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  {isEditMode ? "Update Schedule" : "Create Schedule"}
+                </>
+              )}
+            </button>
+
+            {isEditMode && existingSchedule && (
+              <button
+                onClick={handleDeleteSchedule}
+                disabled={isSubmitting || isLoading}
+                className="text-white font-semibold py-3 px-6 rounded-lg shadow-md bg-red-600 hover:bg-red-700 hover:shadow-lg disabled:opacity-50 flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Schedule
+              </button>
+            )}
+
+            <button
+              onClick={loadExistingSchedules}
+              disabled={isSubmitting || isLoading}
+              className="text-blue-600 font-semibold py-3 px-6 rounded-lg border border-blue-600 hover:bg-blue-50 disabled:opacity-50 flex items-center gap-2"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+              />
+              Refresh
             </button>
           </div>
         </div>

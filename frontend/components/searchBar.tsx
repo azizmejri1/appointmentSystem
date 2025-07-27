@@ -43,11 +43,11 @@ const SearchBar = () => {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto p-6">
+    <div className="w-full max-w-6xl mx-auto p-6">
       {/* Main Search Container */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#0e77d6] to-[#0e77d6] px-6 py-4">
+        <div className="bg-gradient-to-r from-[#0e77d6] to-[#1e88e5] px-6 py-4">
           <div className="flex items-center space-x-2">
             <Search className="w-5 h-5 text-white" />
             <h2 className="text-white font-semibold text-lg">
@@ -59,20 +59,18 @@ const SearchBar = () => {
         {/* Search Form */}
         <div className="p-6">
           {/* Search Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Doctor/Practice Name */}
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Specialty */}
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Specialty
+                Medical Specialty
               </label>
               <div className="relative">
                 <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <select
                   value={specialty}
                   onChange={(e) => setSpecialty(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0e77d6] focus:border-transparent transition-all duration-200 hover:border-gray-400 appearance-none bg-white cursor-pointer"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0e77d6] focus:border-transparent transition-all duration-200 hover:border-gray-400 appearance-none bg-white cursor-pointer text-gray-700"
                 >
                   {specialties.map((spec) => (
                     <option key={spec} value={spec}>
@@ -93,7 +91,7 @@ const SearchBar = () => {
                 <select
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0e77d6] focus:border-transparent transition-all duration-200 hover:border-gray-400 appearance-none bg-white cursor-pointer"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0e77d6] focus:border-transparent transition-all duration-200 hover:border-gray-400 appearance-none bg-white cursor-pointer text-gray-700"
                 >
                   {locations.map((loc) => (
                     <option key={loc} value={loc}>
@@ -108,34 +106,13 @@ const SearchBar = () => {
           {/* Search Button */}
           <div className="flex justify-center">
             <button
-              className="bg-gradient-to-r from-[#0e77d6] to-[#0e77d6] hover:from-[#0c68b9] hover:to-[#0c68b9] text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center space-x-2"
+              className="bg-gradient-to-r from-[#0e77d6] to-[#1e88e5] hover:from-[#0c68b9] hover:to-[#1976d2] text-white font-semibold py-4 px-12 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center space-x-3 text-lg"
               onClick={handleSearchSubmit}
             >
-              <Search className="w-4 h-4" />
-              <span>Search Healthcare Providers</span>
+              <Search className="w-5 h-5" />
+              <span>Find Doctors</span>
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Quick Search Tags */}
-      <div className="mt-6 text-center">
-        <p className="text-sm text-gray-600 mb-3">Popular searches:</p>
-        <div className="flex flex-wrap justify-center gap-2">
-          {[
-            "Family Doctor",
-            "Dentist",
-            "Pediatrician",
-            "Dermatologist",
-            "Cardiologist",
-          ].map((tag) => (
-            <button
-              key={tag}
-              className="px-3 py-1 bg-[#e6f0fa] text-[#0e77d6] rounded-full text-sm hover:bg-[#d0e1f5] transition-colors duration-200"
-            >
-              {tag}
-            </button>
-          ))}
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ export default function SignIn({
   setShowSignUp: Dispatch<SetStateAction<boolean>>;
 }) {
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [signInData, setSignInData] = useState({
     email: "",
     password: "",
@@ -23,6 +24,8 @@ export default function SignIn({
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(""); // Clear previous errors
+
     try {
       const data = await handleSignIn(signInData);
       setShowSignIn(false);
@@ -31,8 +34,20 @@ export default function SignIn({
       } else {
         router.push("/doctor/dashboard");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      // Set user-friendly error message
+      if (err.response?.status === 401) {
+        setErrorMessage("Invalid email or password. Please try again.");
+      } else if (err.response?.status === 403) {
+        setErrorMessage(
+          "Account not verified. Please check your email for verification link."
+        );
+      } else if (err.response?.data?.message) {
+        setErrorMessage(err.response.data.message);
+      } else {
+        setErrorMessage("Something went wrong. Please try again later.");
+      }
     }
   };
 
@@ -56,6 +71,26 @@ export default function SignIn({
         {/* Sign In Form */}
         <form onSubmit={handleSignInSubmit} className="p-6">
           <div className="space-y-4">
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                <div className="flex items-center">
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="text-sm">{errorMessage}</span>
+                </div>
+              </div>
+            )}
+
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
