@@ -109,11 +109,15 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
   const goToPreviousMonth = () => {
     const newMonth = new Date(currentMonth);
     newMonth.setMonth(currentMonth.getMonth() - 1);
-    
+
     // Don't allow going to past months
     const today = new Date();
-    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    
+    const currentMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1
+    );
+
     if (newMonth >= currentMonthStart) {
       setCurrentMonth(newMonth);
       setSelectedDate(null); // Clear selected date when changing months
@@ -125,11 +129,11 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
   const goToNextMonth = () => {
     const newMonth = new Date(currentMonth);
     newMonth.setMonth(currentMonth.getMonth() + 1);
-    
+
     // Allow up to 6 months in the future
     const maxMonth = new Date();
     maxMonth.setMonth(maxMonth.getMonth() + 6);
-    
+
     if (newMonth <= maxMonth) {
       setCurrentMonth(newMonth);
       setSelectedDate(null); // Clear selected date when changing months
@@ -140,7 +144,11 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
   // Check if navigation buttons should be disabled
   const isPreviousDisabled = () => {
     const today = new Date();
-    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const currentMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1
+    );
     const prevMonth = new Date(currentMonth);
     prevMonth.setMonth(currentMonth.getMonth() - 1);
     return prevMonth < currentMonthStart;
@@ -179,7 +187,10 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
       if (response.ok) {
         const schedulesData = await response.json();
         console.log("📋 Raw schedules response:", schedulesData);
-        console.log("📋 Array length:", Array.isArray(schedulesData) ? schedulesData.length : "Not an array");
+        console.log(
+          "📋 Array length:",
+          Array.isArray(schedulesData) ? schedulesData.length : "Not an array"
+        );
 
         if (Array.isArray(schedulesData) && schedulesData.length > 0) {
           console.log("✅ Setting schedules from array:", schedulesData);
@@ -265,15 +276,22 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
           // Use exact matching only to prevent false positives
           const exactMatch = slotDay === targetDay;
           const fullDateMatch = slotDay === targetFullDate;
-          
+
           // Only allow "starts with" for full date strings (e.g., "Monday January 15")
-          const startsWithDateMatch = slotDay.startsWith(targetDay) && slotDay.includes(dateString.toLowerCase());
+          const startsWithDateMatch =
+            slotDay.startsWith(targetDay) &&
+            slotDay.includes(dateString.toLowerCase());
 
           return exactMatch || fullDateMatch || startsWithDateMatch;
         });
 
         if (hasAvailability) {
-          console.log("✅ Found schedule:", schedule._id, "for date:", fullDateString);
+          console.log(
+            "✅ Found schedule:",
+            schedule._id,
+            "for date:",
+            fullDateString
+          );
           return schedule;
         }
       }
@@ -291,7 +309,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
   // Generate time slots for selected date - ENHANCED DEBUGGING
   const generateTimeSlots = (date: Date) => {
     const schedule = findScheduleForDate(date);
-    
+
     if (!schedule) {
       console.log("❌ No schedule available for this date");
       return [];
@@ -329,9 +347,11 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
       // Also try matching with the full date string
       const fullDateTarget = `${dayName} ${dateString}`.toLowerCase().trim();
       const fullDateMatch = slotDay === fullDateTarget;
-      
+
       // Only allow "starts with" for full date strings (e.g., "Monday January 15")
-      const startsWithDateMatch = slotDay.startsWith(targetDay) && slotDay.includes(dateString.toLowerCase());
+      const startsWithDateMatch =
+        slotDay.startsWith(targetDay) &&
+        slotDay.includes(dateString.toLowerCase());
 
       console.log(`🔍 Comparing "${slotDay}" with "${targetDay}":`, {
         exactMatch,
@@ -777,7 +797,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
                 <p className="text-sm text-blue-800">
                   <strong>Available days:</strong>{" "}
                   {schedules
-                    .flatMap((schedule) => 
+                    .flatMap((schedule) =>
                       schedule.availability.map((slot: any) => slot.day)
                     )
                     .filter((day, index, arr) => arr.indexOf(day) === index) // Remove duplicates
@@ -819,11 +839,12 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-                
+
                 <h4 className="text-center font-medium text-gray-900">
-                  {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                  {monthNames[currentMonth.getMonth()]}{" "}
+                  {currentMonth.getFullYear()}
                 </h4>
-                
+
                 <button
                   onClick={goToNextMonth}
                   disabled={isNextDisabled()}
@@ -936,7 +957,9 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
           <div className="text-sm text-gray-600">
             {selectedDate && selectedTime && schedules.length > 0 && (
               <span>
-                Appointment duration: {findScheduleForDate(selectedDate)?.appointmentDuration || 30} minutes
+                Appointment duration:{" "}
+                {findScheduleForDate(selectedDate)?.appointmentDuration || 30}{" "}
+                minutes
               </span>
             )}
           </div>
