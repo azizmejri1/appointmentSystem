@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import FilterSidebar from "./components/FilterSideBar";
 import DoctorProfileCard from "./components/DoctorProfileCard";
 import { Stethoscope } from "lucide-react";
@@ -10,7 +10,7 @@ import { mapDoctors } from "@/util/mapDoctor";
 import Navbar from "@/components/navbar";
 import SignIn from "@/components/signIn";
 import SignUp from "@/components/signUp";
-const App = () => {
+const DoctorsListContent = () => {
   const searchParams = useSearchParams();
 
   const city = searchParams.get("city");
@@ -29,8 +29,6 @@ const App = () => {
   });
 
   const [sampleDoctors, setSampleDoctors] = useState<SampleDoctor[]>([]);
-  const [showSignIn, setShowSignIn] = useState(false);
-  const [showSignUp, setShowSignUp] = useState(false);
 
   useEffect(() => {
     document.title = "Find Doctors - MedSchedule";
@@ -72,74 +70,84 @@ const App = () => {
   });
 
   return (
+    <div className="bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto p-8">
+        <h1 className="text-3xl font-bold text-center text-gray-900 mb-8">
+          Find Your Doctor
+        </h1>
+
+        <div className="flex gap-8">
+          {/* Sidebar */}
+          <FilterSidebar
+            filters={filters}
+            onFilterChange={handleFilterChange}
+          />
+
+          {/* Main Content */}
+          <div className="flex-1">
+            {filteredDoctors.length > 0 ? (
+              <div className="space-y-6">
+                <p className="text-gray-600 text-sm">
+                  Showing {filteredDoctors.length} doctor
+                  {filteredDoctors.length !== 1 ? "s" : ""}
+                </p>
+                {filteredDoctors.map((doctor, index) => (
+                  <DoctorProfileCard
+                    key={index}
+                    doctor={{
+                      _id: doctor.id, // Use the real doctor ID from the API
+                      firstName:
+                        doctor.name.replace("Dr. ", "").split(" ")[0] ||
+                        "Doctor",
+                      lastName:
+                        doctor.name
+                          .replace("Dr. ", "")
+                          .split(" ")
+                          .slice(1)
+                          .join(" ") || "Name",
+                      specialty: doctor.specialty,
+                      location: doctor.location,
+                    }}
+                    {...doctor}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <Stethoscope className="w-16 h-16 mx-auto" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No doctors found
+                </h3>
+                <p className="text-gray-600">
+                  Try adjusting your filters to find more doctors.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const App = () => {
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
+
+  return (
     <div>
       <Navbar setShowSignIn={setShowSignIn} setShowSignUp={setShowSignUp} />
       {showSignIn && (
         <SignIn setShowSignIn={setShowSignIn} setShowSignUp={setShowSignUp} />
       )}
-
       {showSignUp && (
         <SignUp setShowSignIn={setShowSignIn} setShowSignUp={setShowSignUp} />
       )}
-      <div className="bg-gray-50 min-h-screen">
-        <div className="max-w-7xl mx-auto p-8">
-          <h1 className="text-3xl font-bold text-center text-gray-900 mb-8">
-            Find Your Doctor
-          </h1>
-
-          <div className="flex gap-8">
-            {/* Sidebar */}
-            <FilterSidebar
-              filters={filters}
-              onFilterChange={handleFilterChange}
-            />
-
-            {/* Main Content */}
-            <div className="flex-1">
-              {filteredDoctors.length > 0 ? (
-                <div className="space-y-6">
-                  <p className="text-gray-600 text-sm">
-                    Showing {filteredDoctors.length} doctor
-                    {filteredDoctors.length !== 1 ? "s" : ""}
-                  </p>
-                  {filteredDoctors.map((doctor, index) => (
-                    <DoctorProfileCard
-                      key={index}
-                      doctor={{
-                        _id: doctor.id, // Use the real doctor ID from the API
-                        firstName:
-                          doctor.name.replace("Dr. ", "").split(" ")[0] ||
-                          "Doctor",
-                        lastName:
-                          doctor.name
-                            .replace("Dr. ", "")
-                            .split(" ")
-                            .slice(1)
-                            .join(" ") || "Name",
-                        specialty: doctor.specialty,
-                        location: doctor.location,
-                      }}
-                      {...doctor}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="text-gray-400 mb-4">
-                    <Stethoscope className="w-16 h-16 mx-auto" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No doctors found
-                  </h3>
-                  <p className="text-gray-600">
-                    Try adjusting your filters to find more doctors.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <Suspense fallback={<div>Loading...</div>}>
+        <DoctorsListContent />
+      </Suspense>
     </div>
   );
 };

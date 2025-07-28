@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle, XCircle, Loader2, Mail } from "lucide-react";
 
-export default function VerifyEmail() {
+const VerifyEmailContent = () => {
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     "loading"
   );
   const [message, setMessage] = useState("");
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
 
   useEffect(() => {
     document.title = "Email Verification - MedSchedule";
@@ -53,8 +54,6 @@ export default function VerifyEmail() {
   };
 
   const resendVerification = async () => {
-    // This would require the doctor ID, which we don't have here
-    // In a real implementation, you might want to redirect to a resend page
     setMessage("Please contact support for a new verification email.");
   };
 
@@ -155,4 +154,12 @@ export default function VerifyEmail() {
       </div>
     </div>
   );
-}
+};
+
+const VerifyEmail = () => (
+  <Suspense fallback={<div>Loading...</div>}>
+    <VerifyEmailContent />
+  </Suspense>
+);
+
+export default VerifyEmail;
