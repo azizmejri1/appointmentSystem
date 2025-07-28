@@ -260,7 +260,7 @@ const WaitingList: React.FC = () => {
     });
 
     setCreatingAppointment(true);
-    
+
     // Close modal immediately so user can see the messages
     closeModal();
 
@@ -318,11 +318,14 @@ const WaitingList: React.FC = () => {
       // Handle different types of errors
       if (error?.response?.data) {
         const responseData = error.response.data;
-        
+
         // Check if the error response has a message
         if (typeof responseData.message === "string") {
           errorMessage = responseData.message;
-        } else if (responseData.message && typeof responseData.message === "object") {
+        } else if (
+          responseData.message &&
+          typeof responseData.message === "object"
+        ) {
           // Handle nested message objects
           if (responseData.message.message) {
             errorMessage = responseData.message.message;
@@ -337,29 +340,42 @@ const WaitingList: React.FC = () => {
         // Customize error titles and messages based on specific backend errors
         if (errorMessage.includes("does not have an active schedule")) {
           errorTitle = "❌ No Schedule Available";
-          errorMessage = "This doctor hasn't set up their availability schedule yet. Please create a schedule first before booking appointments.";
+          errorMessage =
+            "This doctor hasn't set up their availability schedule yet. Please create a schedule first before booking appointments.";
         } else if (errorMessage.includes("not available on")) {
           errorTitle = "❌ Date Not Available";
           errorMessage = `${errorMessage} Please choose a date when the doctor is available.`;
         } else if (errorMessage.includes("only available between")) {
           errorTitle = "❌ Time Not Available";
           errorMessage = `${errorMessage} Please select a time within the doctor's working hours.`;
-        } else if (errorMessage.includes("conflicts with an existing appointment")) {
+        } else if (
+          errorMessage.includes("conflicts with an existing appointment")
+        ) {
           errorTitle = "❌ Time Slot Conflict";
           errorMessage = `${errorMessage} Please choose a different time slot.`;
         } else if (errorMessage.includes("on a break at this time")) {
           errorTitle = "❌ Doctor Unavailable";
-          errorMessage = "The doctor is on a break at the selected time. Please choose a different time slot.";
-        } else if (errorMessage.includes("Patient ID is required") || errorMessage.includes("Doctor ID is required")) {
+          errorMessage =
+            "The doctor is on a break at the selected time. Please choose a different time slot.";
+        } else if (
+          errorMessage.includes("Patient ID is required") ||
+          errorMessage.includes("Doctor ID is required")
+        ) {
           errorTitle = "❌ Missing Information";
-          errorMessage = "Required patient or doctor information is missing. Please try again.";
-        } else if (errorMessage.includes("dateTime") && errorMessage.includes("required")) {
+          errorMessage =
+            "Required patient or doctor information is missing. Please try again.";
+        } else if (
+          errorMessage.includes("dateTime") &&
+          errorMessage.includes("required")
+        ) {
           errorTitle = "❌ Invalid Date/Time";
-          errorMessage = "Please select a valid date and time for the appointment.";
+          errorMessage =
+            "Please select a valid date and time for the appointment.";
         }
       } else if (error?.response?.status === 400) {
         errorTitle = "❌ Invalid Request";
-        errorMessage = "The appointment data is invalid. Please check all fields and try again.";
+        errorMessage =
+          "The appointment data is invalid. Please check all fields and try again.";
       } else if (error?.response?.status === 401) {
         errorTitle = "❌ Authentication Required";
         errorMessage = "Your session has expired. Please log in again.";
@@ -368,19 +384,30 @@ const WaitingList: React.FC = () => {
         errorMessage = "You don't have permission to create appointments.";
       } else if (error?.response?.status === 404) {
         errorTitle = "❌ Not Found";
-        errorMessage = "The doctor or patient could not be found. Please verify the information.";
+        errorMessage =
+          "The doctor or patient could not be found. Please verify the information.";
       } else if (error?.response?.status === 409) {
         errorTitle = "❌ Conflict";
-        errorMessage = "There's a conflict with the selected appointment time. Please choose a different time.";
+        errorMessage =
+          "There's a conflict with the selected appointment time. Please choose a different time.";
       } else if (error?.response?.status >= 500) {
         errorTitle = "❌ Server Error";
-        errorMessage = "Our servers are experiencing issues. Please try again in a few minutes.";
-      } else if (error?.code === "NETWORK_ERROR" || error?.message?.includes("Network Error")) {
+        errorMessage =
+          "Our servers are experiencing issues. Please try again in a few minutes.";
+      } else if (
+        error?.code === "NETWORK_ERROR" ||
+        error?.message?.includes("Network Error")
+      ) {
         errorTitle = "❌ Connection Error";
-        errorMessage = "Unable to connect to the server. Please check your internet connection and try again.";
-      } else if (error?.code === "ECONNABORTED" || error?.message?.includes("timeout")) {
+        errorMessage =
+          "Unable to connect to the server. Please check your internet connection and try again.";
+      } else if (
+        error?.code === "ECONNABORTED" ||
+        error?.message?.includes("timeout")
+      ) {
         errorTitle = "❌ Request Timeout";
-        errorMessage = "The request took too long to complete. Please try again.";
+        errorMessage =
+          "The request took too long to complete. Please try again.";
       } else if (error?.message) {
         errorMessage = error.message;
       }
