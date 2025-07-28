@@ -19,8 +19,8 @@ export class AuthController {
       const token = user.access_token;
       res.cookie('token', token, {
         httpOnly: true,
-        sameSite: 'lax',
-        secure: false, 
+        sameSite: 'none',
+        secure: true, 
       });
 
       const profile = user.profile || {_id:null};
@@ -33,8 +33,8 @@ export class AuthController {
     logout(@Res({ passthrough: true }) res: Response) {
       res.clearCookie('token', {
         httpOnly: true,
-        sameSite: 'lax',
-        secure: false, // should match your login settings
+        sameSite: 'none',
+        secure: true, // should match your login settings
       });
 
       return { message: 'Logged out' };
