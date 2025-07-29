@@ -700,49 +700,6 @@ export default function Settings() {
           </p>
         </div>
 
-        {/* Location Picker */}
-        <div className="border-t border-gray-200 pt-6">
-          <h4 className="text-sm font-medium text-gray-900 mb-4">
-            Set Clinic Location
-          </h4>
-          <LocationPicker
-            currentLocation={locationForm.adress}
-            onLocationSelect={(location) => {
-              setLocationForm({
-                ...locationForm,
-                adress: location.address,
-                location_maps: `https://maps.google.com/search/${encodeURIComponent(
-                  location.address
-                )}`,
-              });
-            }}
-          />
-        </div>
-
-        {/* Map Preview */}
-        {locationForm.location_maps && (
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Location Preview
-            </label>
-            <div className="border border-gray-300 rounded-lg overflow-hidden">
-              <iframe
-                src={locationForm.location_maps.replace(
-                  "maps.google.com",
-                  "maps.google.com/embed"
-                )}
-                width="100%"
-                height="200"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Clinic Location"
-              />
-            </div>
-          </div>
-        )}
-
         <button
           type="submit"
           disabled={loading}

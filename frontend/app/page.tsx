@@ -138,30 +138,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="py-16 bg-gradient-to-r from-blue-600 to-blue-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            <div className="text-white">
-              <div className="text-4xl font-bold mb-2">1000+</div>
-              <div className="text-blue-100">Healthcare Providers</div>
-            </div>
-            <div className="text-white">
-              <div className="text-4xl font-bold mb-2">50,000+</div>
-              <div className="text-blue-100">Appointments Booked</div>
-            </div>
-            <div className="text-white">
-              <div className="text-4xl font-bold mb-2">25+</div>
-              <div className="text-blue-100">Medical Specialties</div>
-            </div>
-            <div className="text-white">
-              <div className="text-4xl font-bold mb-2">4.9★</div>
-              <div className="text-blue-100">Patient Satisfaction</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* CTA Section */}
       <div className="py-20 bg-gray-50">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
