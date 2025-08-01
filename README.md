@@ -22,7 +22,7 @@ root/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/appointmentSystem.git
+git clone https://github.com/azizmejri1/appointmentSystem.git
 cd appointmentSystem
 ```
 
