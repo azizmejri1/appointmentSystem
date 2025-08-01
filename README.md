@@ -57,7 +57,6 @@ Create a `.env` file inside the `api/` folder with the following:
 
 ```env
 MONGODB_URI=your_mongo_connection_string
-PORT=3000
 JWT_SECRET=your_jwt_secret_key
 FRONTEND_URL=your_frontend_url
 PORT=8080
