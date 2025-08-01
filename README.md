@@ -75,7 +75,7 @@ NEXT_PUBLIC_FRONTEND_URL=frontend_url
 
 # Environment
 NODE_ENV=development
-
+```
 ### 4. Run the Backend
 
 ```bash
